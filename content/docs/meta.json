@@ -1,4 +1,10 @@
 {
   "title": "文章",
-  "pages": ["index", "thoughts", "engineering", "computer-vision", "paper-reading", "projects"]
+  "pages": [
+    "index",
+    "computer-vision",
+    "engineering",
+    "thoughts",
+    "projects"
+  ]
 }

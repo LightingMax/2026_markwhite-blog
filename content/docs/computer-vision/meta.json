@@ -1,5 +1,9 @@
 {
   "title": "计算机视觉",
-  "pages": ["index", "camera-color"],
+  "pages": [
+    "index",
+    "camera-color",
+    "paper-reading"
+  ],
   "defaultOpen": true
 }

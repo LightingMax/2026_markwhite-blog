@@ -11,22 +11,23 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  const data = page.data as ArticleData & { getText?: (kind: string) => Promise<string> };
+  const data = page.data as ArticleData;
   const MDX = page.data.body;
   const markdownUrl = getPageMarkdownUrl(page).url;
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription className="mb-0">{page.data.description}</DocsDescription>
-      {(data.date || data.series || data.tags?.length) && (
+      {page.data.description && <DocsDescription className="mb-0">{page.data.description}</DocsDescription>}
+      {(data.date || data.series || data.tags?.length || data.source) && (
         <div className="article-meta">
           {data.date && <span>{data.date}</span>}
-          {data.series && <span>{data.series}</span>}
-          {data.tags?.map((tag) => <span key={tag}>{tag}</span>)}
+          {data.series && <span>{data.series}{data.part ? ` · ${String(data.part).padStart(2, '0')}` : ''}</span>}
+          {data.source && <span>{data.source}</span>}
+          {data.tags?.map((tag) => <span key={tag}>#{tag}</span>)}
         </div>
       )}
-      <div className="flex flex-row gap-2 items-center border-b pb-6">
+      <div className="article-tools">
         <MarkdownCopyButton markdownUrl={markdownUrl} />
         <ViewOptionsPopover markdownUrl={markdownUrl} githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/content/docs/${page.path}`} />
       </div>

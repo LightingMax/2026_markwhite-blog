@@ -1,5 +1,8 @@
 {
   "title": "项目记录",
-  "pages": ["index", "blog-system"],
-  "defaultOpen": true
+  "pages": [
+    "index",
+    "writing-system"
+  ],
+  "defaultOpen": false
 }

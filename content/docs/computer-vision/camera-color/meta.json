@@ -1,5 +1,16 @@
 {
   "title": "相机与色彩",
-  "pages": ["index", "01-camera-pipeline", "02-sensor-and-raw", "03-white-balance", "04-color-space"],
+  "pages": [
+    "index",
+    "01-photo-is-not-measurement",
+    "02-spectrum-and-cie-color",
+    "03-color-space-and-gamma",
+    "04-raw-and-sensor-front-end",
+    "05-white-balance-and-calibration",
+    "06-photo-style-and-encoding",
+    "07-color-pitfalls-in-computer-vision",
+    "08-isp-research-and-datasets",
+    "09-python-experiments"
+  ],
   "defaultOpen": true
 }

@@ -1,0 +1,21 @@
+---
+title: 一块能长期维护的写作系统
+description: 这个博客如何从域名、文章源文件走到线上发布。
+date: 2026-10-16
+tags:
+  - project
+  - deployment
+series: 项目记录
+part: 1
+---
+
+博客运行在 `https://markwhite.cn/blog/`，但它本身不是这里的主角。真正重要的是建立一条可以持续写作的路径：文章用 MDX 保存，图片与代码公开，构建结果交给 Nginx 提供服务。
+
+## 当前结构
+
+- **内容**：Next.js、Fumadocs 和 MDX。
+- **素材**：文章图片放在 `public/assets`，配套实验放在 `examples`。
+- **发布**：静态导出到 `out/`，GitHub Actions 自动同步到服务器。
+- **入口**：Nginx 处理 `/blog` 和 HTTPS，FRP 保持独立。
+
+等文章数量增长，再根据阅读路径拆分栏目，而不是提前制造很多空的分类。

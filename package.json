@@ -14,10 +14,13 @@
     "fumadocs-core": "16.17.4",
     "fumadocs-mdx": "15.4.7",
     "fumadocs-ui": "npm:@fumadocs/base-ui@16.17.4",
+    "katex": "^0.19.0",
     "lucide-react": "^1.50.0",
     "next": "16.3.8",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -26,11 +29,11 @@
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "16.3.8",
     "postcss": "^8.5.28",
     "serve": "^14.2.6",
     "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2",
-    "eslint": "^9.39.4",
-    "eslint-config-next": "16.3.8"
+    "typescript": "^7.0.2"
   }
 }

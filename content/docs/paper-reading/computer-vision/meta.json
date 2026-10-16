@@ -1,5 +1,0 @@
-{
-  "title": "计算机视觉",
-  "pages": ["index", "camera-color", "detection", "segmentation", "representation"],
-  "defaultOpen": true
-}

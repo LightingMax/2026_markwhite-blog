@@ -1,0 +1,189 @@
+---
+title: 用 Python 做四个实验，验证 Gamma、白平衡与 RAW 的关键结论
+description: 用 Python 实验验证 Gamma、线性混合、白平衡和 RAW 噪声的关键结论。
+date: 2026-10-16
+tags:
+  - python
+  - camera-color
+  - experiments
+series: 颜色与相机成像
+part: 9
+source: Michael S. Brown · ICCV 2019 tutorial
+---
+> 理解公式之后，最有效的巩固方式是运行小实验。本文使用合成数值和简单模型，验证四件事：sRGB 解码、线性混合、白平衡与非线性的顺序，以及信号相关噪声。实验不需要下载数据，也不冒充完整 ISP 或论文复现。
+>
+> 关键词：Python、NumPy、sRGB、RAW、图像处理实验
+
+## 1. 运行环境与文件
+
+配套项目包含完整脚本 [color_experiments.py](https://github.com/LightingMax/2026_markwhite-blog/blob/main/examples/camera-color/color_experiments.py)，使用 NumPy、Pillow 和 Matplotlib。脚本会生成文章中的实验图及机器可读的数值结果。
+
+在项目根目录执行：
+
+~~~bash
+uv run --with numpy --with pillow --with matplotlib python examples/color_experiments.py
+~~~
+
+也可以在你自己的 Python 环境安装上述包再运行。脚本使用固定随机种子，默认输出到项目的 assets/original 和 examples/results.json。首次使用 uv 时可能需要下载依赖。
+
+下文分段示例中的导入语句要求在 examples 目录下运行，或先将该目录加入 Python 搜索路径；直接执行上面的完整脚本命令则无需这一步。
+
+这里没有真实相机 RAW 输入，因此这些实验只能验证给定模型中的数学关系，不能证明某款设备的标定精度或实际降噪性能。
+
+## 2. 实验一：0.5 为什么不是一半光量？
+
+第 3 篇给出了精确的 sRGB 编解码函数。先检查两个数：
+
+~~~python
+from color_experiments import srgb_decode, srgb_encode
+
+print(float(srgb_decode(0.5)))
+print(float(srgb_encode(0.5)))
+~~~
+
+结果约为：
+
+~~~text
+0.2140411405
+0.7353569831
+~~~
+
+第一个数说明，编码值为 0.5 时，其对应的线性分量只有约 0.214。第二个数说明，线性分量为 0.5 时，应编码为约 0.735。
+
+这能帮助排查两类错误：把归一化当作线性化，或把编码方向和解码方向弄反。除以 255 只改变数值尺度，不会移除非线性编码。
+
+![精确 sRGB 曲线](/blog/assets/camera-color/original/03_srgb_curve.png)
+
+*图 1：配套脚本按标准分段公式生成。横轴是线性分量，纵轴是编码后送往显示的数据。*
+
+脚本还检查解码后再编码能否回到原输入，并检查分段点附近的数值。由于标准分段阈值采用有限小数，切换处存在极小数值差异，应使用合理浮点容差。
+
+## 3. 实验二：黑白平均，128 还是 188？
+
+两种计算：
+
+~~~python
+import numpy as np
+from color_experiments import srgb_decode, srgb_encode
+
+encoded = np.array([0.0, 1.0])
+mean_in_encoded = encoded.mean()
+mean_in_linear = srgb_encode(srgb_decode(encoded).mean())
+
+print(mean_in_encoded)           # 0.5
+print(mean_in_linear)            # 约 0.735357
+print(round(mean_in_encoded*255)) # 128
+print(round(mean_in_linear*255))  # 188
+~~~
+
+在线性域平均相当于把相同权重的光量相加。直接在编码域平均则是另一种运算，它会得到更暗的显示结果。
+
+![两种混合顺序的差异](/blog/assets/camera-color/original/06_nonlinearity.png)
+
+*图 2：脚本生成的数值与色块对照。这里只隔离 sRGB 编码这一项，完整相机还可能有更多非线性。*
+
+这同样解释了为什么缩放、抗锯齿、模糊和半透明合成需要仔细考虑工作空间。涉及 alpha 时还要进一步明确是否使用预乘 alpha；本实验没有覆盖该问题。
+
+不过，“线性混合更符合光量模型”不等于“所有视觉任务在该域训练效果都最好”。前者是运算语义，后者需要具体实验。
+
+## 4. 实验三：白平衡放在非线性之后为什么不等价？
+
+用第 7 篇的标量模型：
+
+~~~python
+def render(x):
+    return x / (1 + x)
+
+raw = 0.4
+wrong_gain = 2.0
+target_gain = 1.0
+
+correct = render(raw * target_gain)
+post_corrected = render(raw * wrong_gain) * target_gain / wrong_gain
+print(correct, post_corrected)
+~~~
+
+结果为：
+
+~~~text
+0.2857142857 0.2222222222
+~~~
+
+正确流程先把 RAW 调整到目标白平衡，再渲染；错误替代方案对已经渲染的值应用比例补偿。即便没有压缩、量化和裁剪，两者也不同。
+
+配套脚本还在理想三通道模型中检查灰世界：构造均值相同的基础通道，乘以已知照明向量，再估计增益。因为合成数据特意满足灰世界假设，所以能够恢复预期通道比例。
+
+![三通道增益的理想实验](/blog/assets/camera-color/original/05_white_balance.png)
+
+*图 3：用于说明对角白平衡的理想例子。它验证代码和公式，不证明灰世界在真实单色场景中可靠。*
+
+学习实验时应把“代码执行正确”和“模型适用于真实数据”分开。真实场景的照明、光谱响应、混合光和饱和，都会让理想模型偏离。
+
+## 5. 实验四：噪声方差为什么随着信号变化？
+
+使用简化 Poisson-Gaussian 模型，在归一化线性域中生成观测：
+
+$$
+y=\frac{\operatorname{Poisson}(Ns)}{N}+
+\epsilon,\qquad \epsilon\sim\mathcal N(0,\sigma_r^2)
+$$
+
+于是理论方差为：
+
+$$
+\operatorname{Var}(y-s)=\frac{s}{N}+\sigma_r^2
+$$
+
+$N$ 控制计数尺度，$\sigma_r$ 是归一化读出噪声标准差。实验取多个亮度级别，分别采样，再比较实测方差和理论曲线。
+
+![信号相关噪声实验](/blog/assets/camera-color/original/07_noise_variance.png)
+
+*图 4：固定随机种子的合成结果。方差以归一化线性值的平方为单位，参数不是某台真实相机的标定值。*
+
+亮区绝对噪声方差可以更大，但相对噪声未必更大。对纯泊松计数，信号约为 $n$、标准差约为 $\sqrt n$，因此信噪比随光子数增加而提高。
+
+为了保持与理论一致，方差统计使用未裁剪样本。如果先把负值裁到零，暗部均值和方差都会改变。
+
+真实 RAW 还可能存在行列噪声等因素；去马赛克、白平衡和 Gamma 后，噪声也不再保持此简单形式。
+
+## 6. 额外数值检查：颜色矩阵与黑电平
+
+脚本还包含两个方便排错的检查：
+
+- 线性 sRGB 的白色 $(1,1,1)$ 经标准矩阵变换，应接近 D65 参考值 $(0.95047,1,1.08883)$；往返变换误差应很小。
+- 以黑电平 64、白电平 4095、读数 1088 为例，归一化结果应约为 0.254031。
+
+这些检查能抓住矩阵转置、通道顺序、负号以及忘记减黑电平等错误。它们不证明真实设备已经正确标定。
+
+## 7. 如何把实验迁移到真实 RAW？
+
+真实工作流建议按以下顺序建立：
+
+1. 保留原始文件，读取有效区域、CFA、黑白电平与曝光信息。
+2. 先检查饱和、坏点及必要校正，验证数值范围。
+3. 选择并记录去马赛克、白平衡和颜色矩阵的具体约定。
+4. 明确哪些步骤用于科学计算，哪些步骤只用于显示预览。
+5. 在输出端统一色域、白点、编码、位深和文件格式。
+
+可以使用 LibRaw、rawpy 或 DNG SDK 等工具，但高级接口往往会自动执行缩放、亮度调整、白平衡、颜色变换和输出 Gamma。调用“postprocess”获得的结果不是原始采样数组。具体默认值应以所用版本文档为准。
+
+本项目不提供伪造的真实 RAW 文件，也没有实际运行任何设备的 ISP。迁移时应先用灰卡、色卡和曝光序列验证，再扩大到任务数据。
+
+## 8. 用什么标准判断自己学会了？
+
+面对一份图像数据，能够说明以下四件事：
+
+- 每个数值属于什么空间、范围和编码。
+- 从传感器到文件发生过哪些已知或未知处理。
+- 当前运算要求哪些线性、照明和标定假设。
+- 结果是在验证数学实现、视觉质量，还是物理准确度。
+
+做到这一步，RAW、sRGB、白平衡和 ISP 就不再只是名词，而是可以指导采集、建模与调试的一套工具。
+
+## 参考与出处
+
+- 概念基础来自 Michael S. Brown 讲义第 90～94、117～127、140～149、179～198 页。
+- 本篇脚本、参数与图表为本专题新编的合成教学实验。完整数值见 [results.json](https://github.com/LightingMax/2026_markwhite-blog/blob/main/examples/camera-color/results.json)。
+
+**上一篇：[ISP 研究与数据集](/blog/docs/computer-vision/camera-color/08-isp-research-and-datasets/)**  
+**[返回专题目录](/blog/docs/computer-vision/camera-color/)**

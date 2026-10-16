@@ -1,21 +1,26 @@
 ---
-title: 相机色彩：从光线到像素
-description: ICCV 2019 相机色彩教学系列的入口，理解成像、RAW、白平衡与颜色空间。
+title: 颜色与相机成像
+description: 一套从光谱、相机传感器到 ISP 与计算机视觉的连续教程。
 date: 2026-10-16
 tags:
   - camera-color
-  - image-processing
-series: camera-color
-source: ICCV 2019
+  - isp
+series: 颜色与相机成像
+source: Michael S. Brown · ICCV 2019 tutorial
 ---
 
-这是一个持续整理的教学系列，目标是把相机色彩问题拆成一条可以追踪的链路：场景中的光线经过镜头和传感器，如何变成 RAW 数据，又如何经过白平衡、去马赛克、颜色变换和显示，最终成为我们看到的图像。
+一张照片不是对世界的直接抄录。光线经过材料、镜头、传感器、ISP、颜色空间和编码，才成为屏幕上的像素。
 
-这里先放入系列骨架和已经整理出的基础章节。后续会继续把此前的教学文章迁移到对应章节，并在 [论文阅读 → 计算机视觉 → 相机与色彩](/docs/paper-reading/computer-vision/camera-color) 中补充论文视角。
+这套 9 篇文章从颜色科学和相机测量开始，逐步进入 RAW、白平衡、照片风格、计算机视觉中的颜色误区，以及可运行的 Python 实验。文章保留了原始图注和来源说明；配套图像与实验代码也随仓库公开。
 
-## 系列目录
+## 阅读顺序
 
-1. [相机图像处理流水线](/docs/computer-vision/camera-color/01-camera-pipeline)
-2. [传感器与 RAW 数据](/docs/computer-vision/camera-color/02-sensor-and-raw)
-3. [白平衡不是一个常数](/docs/computer-vision/camera-color/03-white-balance)
-4. [颜色空间与显示](/docs/computer-vision/camera-color/04-color-space)
+1. [为什么照片不是对真实世界的直接测量](/docs/computer-vision/camera-color/01-photo-is-not-measurement/)
+2. [颜色从哪里来：光谱与 CIE 颜色科学](/docs/computer-vision/camera-color/02-spectrum-and-cie-color/)
+3. [RGB 不等于 sRGB：色彩空间与 Gamma](/docs/computer-vision/camera-color/03-color-space-and-gamma/)
+4. [RAW 与传感器前端](/docs/computer-vision/camera-color/04-raw-and-sensor-front-end/)
+5. [白平衡与颜色标定](/docs/computer-vision/camera-color/05-white-balance-and-calibration/)
+6. [照片风格与编码](/docs/computer-vision/camera-color/06-photo-style-and-encoding/)
+7. [计算机视觉的颜色误区](/docs/computer-vision/camera-color/07-color-pitfalls-in-computer-vision/)
+8. [ISP 研究与数据集](/docs/computer-vision/camera-color/08-isp-research-and-datasets/)
+9. [用 Python 做四个实验](/docs/computer-vision/camera-color/09-python-experiments/)
