@@ -20,7 +20,7 @@ source: Michael S. Brown · ICCV 2019 tutorial
 
 相机传感器本身不会理解“这应该是一张白纸”。白平衡模块需要估计照明在本设备通道中的响应，再对通道做补偿。
 
-![不同照明条件与色适应](/blog/assets/camera-color/source/slide-083.png)
+![不同照明条件与色适应](/blog/assets/camera-color/source/slide-083.webp)
 
 *图 1：讲义 PDF 第 83 页。比较白色区域可以帮助观察照明差异与适应后的变化。*
 
@@ -81,7 +81,7 @@ $$
 
 最大值容易被热像素、饱和或彩色高光污染。较高分位数可改善极端值问题，但不能解决“画面本来没有中性参照”的根本歧义。彩色金属的镜面反射也不满足简单假设。
 
-![两种基础 AWB 算法的示例](/blog/assets/camera-color/source/slide-150.png)
+![两种基础 AWB 算法的示例](/blog/assets/camera-color/source/slide-150.webp)
 
 *图 3：讲义 PDF 第 150 页。观察中性背景和物体颜色，而不只问哪一张“更亮”。图中展示方式遵循原讲义。*
 
@@ -105,7 +105,7 @@ $$
 
 $W$ 通常是对角矩阵，$M$ 通常是完整的 3×3 矩阵，也可能采用更复杂的模型。
 
-![白平衡与颜色空间转换是两个步骤](/blog/assets/camera-color/source/slide-139.png)
+![白平衡与颜色空间转换是两个步骤](/blog/assets/camera-color/source/slide-139.webp)
 
 *图 4：讲义 PDF 第 139 页。中性化不等于建立了标准颜色坐标。*
 
@@ -127,7 +127,7 @@ $$
 
 若 $T_1=2500\ \mathrm K$、$T_2=6500\ \mathrm K$、$T=4300\ \mathrm K$，则 $\alpha\approx0.3198$。它与直接按开尔文线性插值的权重不同。
 
-![倒色温插值](/blog/assets/camera-color/source/slide-154.png)
+![倒色温插值](/blog/assets/camera-color/source/slide-154.webp)
 
 *图 5：讲义 PDF 第 154 页。这里展示的是一种相机标定策略，不是所有 ISP 的统一实现。*
 

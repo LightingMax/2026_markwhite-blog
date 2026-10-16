@@ -18,7 +18,7 @@ source: Michael S. Brown · ICCV 2019 tutorial
 
 经过白平衡和颜色标定，相机可以得到具有明确色彩空间意义的数据。但厂商通常还会调整肤色、天空、植被、阴影和高光，使照片符合产品的审美目标。
 
-![同一 RAW 的不同图像风格](/blog/assets/camera-color/source/slide-159.png)
+![同一 RAW 的不同图像风格](/blog/assets/camera-color/source/slide-159.webp)
 
 *图 1：讲义 PDF 第 159 页。同一原始输入经过不同风格处理，可以生成不同结果。*
 
@@ -50,7 +50,7 @@ $$
 
 例如，改变“偏青的蓝色”而尽量保持肤色，通常需要根据三个输入通道共同决定输出，而不是分别应用三条独立曲线。
 
-![3D LUT 与 1D 色调曲线](/blog/assets/camera-color/source/slide-160.png)
+![3D LUT 与 1D 色调曲线](/blog/assets/camera-color/source/slide-160.webp)
 
 *图 2：讲义 PDF 第 160 页。LUT 表示一种映射，图中的工作空间依具体管线而定。*
 
@@ -68,7 +68,7 @@ $$
 
 $\mathcal N(p)$ 表示附近图像结构或局部统计。这样可以压缩高动态范围、提升暗部可见性或保留局部对比。
 
-![全局和局部色调映射](/blog/assets/camera-color/source/slide-163.png)
+![全局和局部色调映射](/blog/assets/camera-color/source/slide-163.webp)
 
 *图 3：讲义 PDF 第 163 页。局部处理依赖内容，右侧差异图也说明变化并非一个统一增益。*
 
@@ -100,7 +100,7 @@ $$
 
 讲义介绍的常见基线 JPEG 编码流程包括颜色分量处理、分块、DCT、量化以及熵编码。常见彩色 JPEG 还会使用 YCbCr 和色度子采样，但这不是所有 JPEG 实现的唯一方式。
 
-![JPEG 编码流程](/blog/assets/camera-color/source/slide-167.png)
+![JPEG 编码流程](/blog/assets/camera-color/source/slide-167.webp)
 
 *图 4：讲义 PDF 第 167 页。量化是该常见流程中主要的有损步骤之一，色度子采样也可能造成信息损失。*
 

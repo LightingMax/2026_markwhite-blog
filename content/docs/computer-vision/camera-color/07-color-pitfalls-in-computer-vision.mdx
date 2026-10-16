@@ -44,7 +44,7 @@ $$
 
 *图 1：本专题数值实验。用两个像素的平均代表简单模糊，说明先混合再编码与先编码再混合会得到不同结果。这里仅使用已知 sRGB 非线性，不模拟完整 ISP。*
 
-![RAW 和成品图像的去模糊对比](/blog/assets/camera-color/source/slide-185.png)
+![RAW 和成品图像的去模糊对比](/blog/assets/camera-color/source/slide-185.webp)
 
 *图 2：讲义 PDF 第 185 页。讲义使用该例说明非线性输入与线性恢复模型不匹配时可能出现振铃。图中数值属于原实验，不是本专题复现实验。*
 
@@ -82,7 +82,7 @@ $$
 
 它一般不等于 $F(W_c r)$，因为白平衡和非线性渲染通常不交换。真实管线中的颜色矩阵还可能随白平衡变化，使问题更复杂。
 
-![JPEG 后期白平衡的限制](/blog/assets/camera-color/source/slide-192.png)
+![JPEG 后期白平衡的限制](/blog/assets/camera-color/source/slide-192.webp)
 
 *图 3：讲义 PDF 第 192 页。逆 sRGB、通道校正、再编码的流程，没有撤销白平衡后发生的全部相机处理。*
 
@@ -96,7 +96,7 @@ $$
 
 RAW 的设备 RGB 不是标准显示空间。即便数值已经白平衡，直接在默认 sRGB 的软件里展示，依然跳过了必要颜色映射。
 
-![脱离颜色上下文的视觉比较](/blog/assets/camera-color/source/slide-198.png)
+![脱离颜色上下文的视觉比较](/blog/assets/camera-color/source/slide-198.webp)
 
 *图 4：讲义 PDF 第 198 页。不同方法的结果若以错误色彩空间显示，读者看到的差异会混入显示解释错误。*
 

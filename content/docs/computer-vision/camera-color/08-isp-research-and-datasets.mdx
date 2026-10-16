@@ -20,7 +20,7 @@ source: Michael S. Brown · ICCV 2019 tutorial
 
 软件 ISP 的价值在于暴露中间结果和可控制的模块。研究者可以固定其他环节，只替换白平衡、去马赛克或颜色变换，再观察最终输出。
 
-![软件相机管线的中间结果](/blog/assets/camera-color/source/slide-202.png)
+![软件相机管线的中间结果](/blog/assets/camera-color/source/slide-202.webp)
 
 *图 1：讲义 PDF 第 202 页，Karaimer 与 Brown 的 ECCV 2016 工作。图中依次暴露 RAW 校正、重建、颜色与渲染阶段。*
 
@@ -34,7 +34,7 @@ source: Michael S. Brown · ICCV 2019 tutorial
 
 数据可以通过在场景中放置中性参照获得标签。测量其有效、未饱和区域的 RAW 响应，作为照明估计依据。
 
-![AWB 标签与色卡遮挡](/blog/assets/camera-color/source/slide-219.png)
+![AWB 标签与色卡遮挡](/blog/assets/camera-color/source/slide-219.webp)
 
 *图 2：讲义 PDF 第 219 页。中性参照用于构造标签；正式输入应按基准协议遮挡，防止模型直接读取答案。*
 
@@ -51,7 +51,7 @@ source: Michael S. Brown · ICCV 2019 tutorial
 
 在干净图像上添加独立同分布高斯噪声，可以研究一个清晰的简化问题，但真实相机存在信号相关、通道相关和空间相关噪声。ISP 还会改变噪声分布。
 
-![SIDD 数据集介绍](/blog/assets/camera-color/source/slide-223.png)
+![SIDD 数据集介绍](/blog/assets/camera-color/source/slide-223.webp)
 
 *图 3：讲义 PDF 第 223 页介绍 SIDD。页内统计属于讲义对数据采集的介绍，不应直接当作当前某个下载版本的训练样本数。*
 
@@ -79,7 +79,7 @@ Gharbi 等人的 *Deep Joint Demosaicking and Denoising*（2016）把缺失颜�
 
 Wronski 等人的 *Handheld Multi-Frame Super-Resolution*（2019）利用多帧微小位移，让不同采样位置提供互补信息。
 
-![多帧微位移与颜色采样](/blog/assets/camera-color/source/slide-227.png)
+![多帧微位移与颜色采样](/blog/assets/camera-color/source/slide-227.webp)
 
 *图 4：讲义 PDF 第 227 页。多帧方法依靠对齐和互补采样，能够同时影响去马赛克与分辨率。*
 
@@ -97,7 +97,7 @@ Wronski 等人的 *Handheld Multi-Frame Super-Resolution*（2019）利用多帧�
 
 RAW 更利于后续处理，但通常体积较大，支持它的软件也与普通照片不同。讲义介绍了在成品图像之外保存紧凑辅助信息，用于近似重建 RAW 的研究。
 
-![保留辅助信息的混合编码](/blog/assets/camera-color/source/slide-232.png)
+![保留辅助信息的混合编码](/blog/assets/camera-color/source/slide-232.webp)
 
 *图 5：讲义 PDF 第 232 页，Nguyen 与 Brown 的 CVPR 2016 工作。关键是额外保存辅助信息，不是宣称任意 JPEG 都能无损恢复 RAW。*
 
