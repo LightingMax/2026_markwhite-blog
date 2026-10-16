@@ -1,0 +1,5 @@
+{
+  "title": "相机与色彩",
+  "pages": ["index", "01-camera-pipeline", "02-sensor-and-raw", "03-white-balance", "04-color-space"],
+  "defaultOpen": true
+}

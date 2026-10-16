@@ -1,0 +1,21 @@
+---
+title: Mark White 博客系统
+description: 从域名、HTTPS 到 MDX 内容和静态部署的项目记录。
+date: 2026-10-16
+tags:
+  - project
+  - deployment
+series: 项目记录
+part: 1
+---
+
+博客运行在 `https://markwhite.cn/blog/`，由云服务器上的 Nginx 提供静态文件和 HTTPS。
+
+## 当前组成
+
+- **内容**：Next.js + Fumadocs + MDX，源代码和图片开源。
+- **图片**：优先放在仓库的 `public/assets`，与文章一起版本管理。
+- **部署**：构建生成 `out/`，同步到 `/var/www/blog`。
+- **入口**：Nginx 处理 `markwhite.cn/blog`，HTTP 自动跳转 HTTPS。
+
+FRP 不再映射 80 端口，80 和 443 由 Nginx 使用；其他 FRP 映射保持独立。后续会把构建和上传步骤放进 GitHub Actions，让发布变成一次可重复的构建。

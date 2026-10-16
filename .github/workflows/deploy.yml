@@ -1,0 +1,48 @@
+name: Build and deploy blog
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run types:check
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blog-out
+          path: out
+
+  deploy:
+    needs: build
+    if: ${{ github.repository == 'LightingMax/2026_markwhite-blog' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: blog-out
+          path: out
+      - name: Configure SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.BLOG_DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.BLOG_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.BLOG_DEPLOY_USER }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/blog_deploy
+          chmod 600 ~/.ssh/blog_deploy
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          rsync -az --delete -e "ssh -i ~/.ssh/blog_deploy" out/ "$DEPLOY_USER@$DEPLOY_HOST:/var/www/blog/"

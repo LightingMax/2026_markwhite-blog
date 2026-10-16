@@ -1,0 +1,5 @@
+{
+  "title": "论文阅读",
+  "pages": ["index", "computer-vision", "robotics"],
+  "defaultOpen": true
+}
