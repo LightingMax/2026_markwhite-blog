@@ -1,4 +1,4 @@
-/** A single-pass, texture-free ocean. No render targets, engine, or network assets. */
+/** A ray-traced water volume behind a clear fixed pane; no external assets. */
 const vertexSource = `
 attribute vec2 a_position;
 varying vec2 v_uv;
@@ -15,7 +15,6 @@ uniform float u_time;
 uniform float u_dive;
 uniform float u_night;
 uniform float u_detail;
-uniform float u_motion;
 
 const vec3 SUN = vec3(0.58, 0.24, -0.78);
 
@@ -28,7 +27,7 @@ vec3 swell(vec2 p, float t) {
     dot(p, vec2(0.94, -0.34)) * 1.73 + t * 1.21,
     dot(p, vec2(-0.71, -0.70)) * 2.61 - t * 1.54
   );
-  vec4 a = vec4(0.30, 0.16, 0.075, 0.035);
+  vec4 a = vec4(0.14, 0.075, 0.035, 0.018);
   vec4 s = sin(phase);
   vec4 c = cos(phase) * a;
   // A second harmonic makes crests sharper and troughs wider.
@@ -46,9 +45,9 @@ vec3 waterNormal(vec2 p, float t, float distanceToCamera) {
   float a = dot(p, vec2(4.2, 3.1)) - t * 2.0;
   float b = dot(p, vec2(-6.1, 4.8)) + t * 2.6;
   float c = dot(p, vec2(10.4, 7.7)) - t * 3.1 + sin(a) * 0.8;
-  vec2 ripple = vec2(4.2, 3.1) * cos(a + sin(b) * 0.4) * 0.026;
-  ripple += vec2(-6.1, 4.8) * cos(b) * 0.015;
-  ripple += vec2(10.4, 7.7) * cos(c) * 0.006 * u_detail;
+  vec2 ripple = vec2(4.2, 3.1) * cos(a + sin(b) * 0.4) * 0.012;
+  ripple += vec2(-6.1, 4.8) * cos(b) * 0.007;
+  ripple += vec2(10.4, 7.7) * cos(c) * 0.003 * u_detail;
   return normalize(vec3(-(w.yz + ripple * fade), 1.0).xzy);
 }
 
@@ -61,88 +60,6 @@ float noise(vec2 p) {
   f = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
     mix(hash(i + vec2(0.0, 1.0)), hash(i + 1.0), f.x), f.y);
-}
-
-// Beads stay attached to the screen plane. Their curved faces bend the view,
-// while a narrow highlight and shadow reveal the glass rather than painting dots.
-vec4 glassBeads(vec2 p, float age, float seed, float scale, float threshold) {
-  vec2 grid = p * scale;
-  float column = floor(grid.x);
-  float fall = max(age - 2.4, 0.0);
-  grid.y += fall * (0.12 + hash(vec2(column, seed)) * 0.22);
-  vec2 cell = floor(grid);
-  vec2 local = fract(grid);
-  float random = hash(cell + seed);
-  float active = smoothstep(threshold, threshold + 0.08, random);
-  vec2 center = vec2(0.25 + 0.5 * hash(cell + seed + 2.1),
-    0.28 + 0.24 * hash(cell + seed + 5.7));
-  float radius = 0.11 + 0.085 * hash(cell + seed + 9.2);
-  vec2 delta = local - center;
-  vec2 q = delta / vec2(radius, radius * 1.16);
-  float r2 = dot(q, q);
-  float body = 1.0 - smoothstep(0.78, 1.0, r2);
-  float rimWidth = max(1.0 / 21.0, scale / (radius * u_resolution.y) * 1.2);
-  float rim = exp(-abs(r2 - 0.83) / rimWidth);
-  vec2 direction = q / max(length(q), 0.001);
-  float light = dot(direction, normalize(vec2(-0.55, 0.83)));
-  float glint = rim * (max(light, 0.0) * 0.85 - max(-light, 0.0) * 0.42);
-  glint += exp(-dot(q - vec2(-0.30, 0.40), q - vec2(-0.30, 0.40)) * 95.0) * body * 0.38;
-  // A thin draining trail remains above each falling bead.
-  float tailX = delta.x + sin(delta.y * 14.0 + random * 6.0) * 0.012;
-  float tail = (1.0 - smoothstep(0.014, 0.045, abs(tailX)))
-    * smoothstep(0.03, 0.16, delta.y) * (1.0 - smoothstep(0.24, 0.46, delta.y));
-  tail *= smoothstep(1.8, 3.2, age) * 0.35;
-  vec2 bend = -q * body * (radius / scale) * 0.78;
-  bend.x -= tailX * tail * 0.09;
-  return vec4(bend, body + tail, glint + tail * 0.08) * active;
-}
-
-// An incoming wave hits the outside of a fixed glass plane, then drains away.
-// This only warps the ONE scene ray below: no second ocean pass or texture reads.
-vec4 glassLens(vec2 p, float seconds, float surface, out float impact) {
-  impact = 0.0;
-  if (surface < 0.001) return vec4(0.0);
-  float cycle = floor(seconds / 11.8);
-  float age = mod(seconds, 11.8);
-  if (age < 1.0 || age > 11.3) return vec4(0.0);
-  float seed = hash(vec2(cycle, 8.2));
-  float rise = smoothstep(1.05, 1.60, age);
-  float drain = 1.0 - smoothstep(2.05, 6.5, age);
-  float surge = rise * drain;
-  impact = smoothstep(1.15, 1.5, age) * exp(-max(age - 1.5, 0.0) * 8.0) * surface;
-  float width = u_resolution.x / u_resolution.y * 0.55 + 0.15;
-  float focus = (p.x - u_resolution.x / u_resolution.y * (0.55 + seed * 0.12)) / width;
-  float fan = exp(-focus * focus * 1.2);
-  float front = -0.12 + surge * (0.53 + seed * 0.07 + fan * 0.43);
-  front += surge * (sin(p.x * 7.0 + seed * 9.0) * 0.035
-    + sin(p.x * 18.0 - seconds * 0.8) * 0.018);
-  front += impact * sin(p.x * 31.0 + seed * 12.0) * 0.045;
-  float slope = surge * (cos(p.x * 7.0 + seed * 9.0) * 0.245
-    + cos(p.x * 18.0 - seconds * 0.8) * 0.324);
-  slope -= surge * fan * focus * 1.032 / width;
-  slope += impact * cos(p.x * 31.0 + seed * 12.0) * 1.395;
-  float distanceToFront = p.y - front;
-  float feather = max(0.003, 1.8 / u_resolution.y);
-  float film = (1.0 - smoothstep(-feather, feather, distanceToFront)) * rise;
-  float meniscus = exp(-abs(distanceToFront) * 100.0) * surge;
-  float a = p.x * 18.0 + p.y * 8.0 - seconds * 2.6;
-  float b = p.x * 31.0 - p.y * 12.0 + seconds * 3.3;
-  vec2 flow = vec2(cos(a) * 0.012 + cos(b) * 0.008,
-    cos(a) * 0.008 - cos(b) * 0.006) * film;
-  vec2 bend = flow + vec2(-slope, 1.0) * meniscus * 0.044;
-  float rim = meniscus * (0.35 + 0.12 * sin(p.x * 97.0 + sin(p.x * 23.0) * 3.0));
-  rim -= exp(-abs(distanceToFront + 0.022) * 90.0) * surge * 0.16;
-  float residue = smoothstep(1.35, 1.75, age) * (1.0 - smoothstep(8.0, 11.3, age));
-  vec4 beads = vec4(0.0);
-  if (residue > 0.001) {
-    residue *= (1.0 - film * 0.85) * (1.0 - smoothstep(0.83, 1.02, p.y));
-    beads = glassBeads(p, age, cycle * 7.1 + 1.4, 7.0, 0.66);
-    if (u_detail > 0.5) beads += glassBeads(p, age, cycle * 9.3 + 18.7, 13.0, 0.78) * 0.65;
-    bend += beads.xy * residue;
-  }
-  // A bounded offset prevents a large drop from throwing rays across the horizon.
-  bend = clamp(bend, vec2(-0.055), vec2(0.055));
-  return vec4(bend, film * 0.85 + beads.z * residue * 0.22, rim + beads.w * residue) * surface;
 }
 
 vec3 sky(vec3 rd) {
@@ -214,86 +131,139 @@ float intersectOcean(vec3 ro, vec3 rd, float t) {
   return result;
 }
 
-vec3 belowWater(vec3 ro, vec3 rd, float t, float hit) {
-  vec3 deep = mix(vec3(0.012, 0.105, 0.16), vec3(0.004, 0.032, 0.075), u_night);
-  float up = smoothstep(-0.45, 0.9, rd.y);
-  vec3 color = mix(deep * 0.52, vec3(0.035, 0.28, 0.35) * mix(1.0, 0.4, u_night), up);
-  if (hit > 0.0) {
-    vec3 p = ro + rd * hit;
-    vec3 n = waterNormal(p.xz, t, hit);
-    float window = smoothstep(0.61, 0.85, dot(rd, n));
-    vec3 reflection = mix(deep, vec3(0.10, 0.38, 0.42), pow(max(dot(reflect(rd, -n), normalize(SUN)), 0.0), 4.0));
-    color = mix(reflection, sky(refract(rd, -n, 1.333)) * vec3(0.48, 0.88, 0.85), window);
-    color = mix(color, deep, 1.0 - exp(-hit * 0.035));
+// The viewer stays in AIR behind the fixed, optically unobtrusive front pane
+// (z = 0). Water occupies z < 0, between its moving surface and a stone bed.
+// Geometry, not a screen overlay, determines which medium each ray enters.
+const float BED = -3.2;
+const vec3 ABSORPTION = vec3(0.32, 0.085, 0.055);
+
+vec3 waterFog(vec3 color, float distanceInWater) {
+  vec3 transmission = exp(-ABSORPTION * max(distanceInWater, 0.0));
+  vec3 scattering = mix(vec3(0.025, 0.27, 0.32), vec3(0.004, 0.055, 0.095), u_night);
+  return color * transmission + scattering * (1.0 - transmission);
+}
+
+// A refracted sunlight footprint. The local area change concentrates light
+// into caustics; derivative samples keep the footprint in world space.
+vec2 lightFootprint(vec2 surface, float t) {
+  vec3 wave = swell(surface, t);
+  // Filter capillary detail out of the light map to prevent subpixel flicker.
+  vec3 n = normalize(vec3(-wave.y, 1.0, -wave.z));
+  vec3 lightRay = refract(-normalize(SUN), n, 1.0 / 1.333);
+  return surface + lightRay.xz * ((BED - swell(surface, t).x) / min(lightRay.y, -0.05));
+}
+
+float caustic(vec2 bed, float t) {
+  vec3 flatRay = refract(-normalize(SUN), vec3(0.0, 1.0, 0.0), 1.0 / 1.333);
+  vec2 surface = bed - flatRay.xz * (BED / flatRay.y);
+  // Invert the light map locally rather than attach an animated texture to the bed.
+  for (int i = 0; i < 3; i++) surface += clamp(bed - lightFootprint(surface, t), vec2(-0.3), vec2(0.3)) * 0.65;
+  vec2 center = lightFootprint(surface, t);
+  vec2 dx = (lightFootprint(surface + vec2(0.04, 0.0), t) - center) / 0.04;
+  vec2 dz = (lightFootprint(surface + vec2(0.0, 0.04), t) - center) / 0.04;
+  float area = abs(dx.x * dz.y - dx.y * dz.x);
+  return clamp(0.65 / max(area, 0.30), 0.40, 1.65);
+}
+
+vec3 bedColor(vec3 p, float t, float distanceToCamera) {
+  // Quiet limestone slabs provide stable depth and refraction cues, as in a
+  // water tank. Thin joints recede with perspective; no screen-space pattern.
+  vec2 tile = p.xz * 0.85;
+  vec2 edge = abs(fract(tile) - 0.5);
+  float jointWidth = clamp(distanceToCamera * 0.0008, 0.006, 0.045);
+  float joints = smoothstep(0.49 - jointWidth, 0.495, max(edge.x, edge.y));
+  float grain = noise(p.xz * 6.0) * 0.035 + noise(floor(tile) + 7.1) * 0.035;
+  vec3 stone = vec3(0.43, 0.57, 0.52) + grain;
+  stone *= 1.0 - joints * 0.30;
+  float light = caustic(p.xz, t);
+  stone *= (0.65 + light * 0.35) * mix(1.0, 0.24, u_night);
+  return stone;
+}
+
+vec3 traceBed(vec3 ro, vec3 rd, float t) {
+  float hit = rd.y < -0.001 ? (BED - ro.y) / rd.y : 100.0;
+  if (hit <= 0.0 || hit > 65.0) return waterFog(vec3(0.0), 65.0);
+  vec3 p = ro + rd * hit;
+  return waterFog(bedColor(p, t, hit), hit);
+}
+
+float fresnelWater(float cosine) {
+  return 0.0204 + 0.9796 * pow(1.0 - clamp(cosine, 0.0, 1.0), 5.0);
+}
+
+vec3 fromAir(vec3 ro, vec3 rd, float t) {
+  float hit = intersectOcean(ro, rd, t);
+  if (hit < 0.0) return sky(rd);
+  vec3 p = ro + rd * hit;
+  vec3 n = waterNormal(p.xz, t, hit);
+  vec3 transmittedRay = refract(rd, n, 1.0 / 1.333);
+  vec3 transmitted = traceBed(p + transmittedRay * 0.012, transmittedRay, t);
+  vec3 reflected = sky(reflect(rd, n));
+  float sun = pow(max(dot(reflect(rd, n), normalize(SUN)), 0.0), 480.0);
+  reflected += vec3(1.0, 0.87, 0.67) * sun * mix(1.5, 0.05, u_night);
+  vec3 color = mix(transmitted, reflected, fresnelWater(dot(-rd, n)));
+  float haze = 1.0 - exp(-hit * 0.012);
+  return mix(color, sky(vec3(rd.x, 0.005, rd.z)), haze * 0.75);
+}
+
+vec3 fromWater(vec3 ro, vec3 rd, float t) {
+  float surfaceHit = intersectOcean(ro, rd, t);
+  float bedHit = rd.y < -0.001 ? (BED - ro.y) / rd.y : 1000.0;
+  if (surfaceHit < 0.0 || bedHit < surfaceHit) return traceBed(ro, rd, t);
+  vec3 p = ro + rd * surfaceHit;
+  vec3 n = waterNormal(p.xz, t, surfaceHit);
+  vec3 transmittedRay = refract(rd, -n, 1.333);
+  vec3 reflectedRay = reflect(rd, -n);
+  vec3 reflected = traceBed(p + reflectedRay * 0.012, reflectedRay, t);
+  // Snell's window and total internal reflection are consequences of the same
+  // surface normals that distort the floor when viewed from above.
+  float reflectance = fresnelWater(dot(rd, n));
+  vec3 color = reflected;
+  if (dot(transmittedRay, transmittedRay) > 0.01) {
+    color = mix(sky(transmittedRay), reflected, reflectance);
   }
-  // Faint crepuscular beams and drifting marine particles.
-  float beamPos = (rd.x + 0.22) / max(rd.y + 1.15, 0.3);
-  float beams = pow(0.5 + 0.5 * sin(beamPos * 31.0 + sin(beamPos * 12.0 + t * 0.08)), 12.0);
-  beams += pow(0.5 + 0.5 * sin(beamPos * 51.0 - t * 0.04), 18.0) * 0.35;
-  color += vec3(0.08, 0.28, 0.29) * beams * 0.11 * up * mix(1.0, 0.35, u_night);
-  vec2 particles = v_uv * vec2(u_resolution.x / u_resolution.y, 1.0) * 95.0 + vec2(t * 0.17, -t * 0.37);
-  vec2 cell = floor(particles);
-  float speck = (1.0 - smoothstep(0.025, 0.11, length(fract(particles) - vec2(hash(cell), hash(cell + 3.7)))))
-    * step(0.975, hash(cell + 7.9));
-  color += vec3(0.18, 0.38, 0.40) * speck * 0.35;
-  return color;
+  return waterFog(color, surfaceHit);
 }
 
 void main() {
   float aspect = u_resolution.x / u_resolution.y;
   vec2 uv = (v_uv * 2.0 - 1.0) * vec2(aspect, 1.0);
   float dive = smoothstep(0.04, 0.96, u_dive);
-  float t = u_time * 0.72;
-  float descent = smoothstep(0.08, 0.96, dive);
-  vec3 ro = vec3(0.0, mix(1.15, -1.75, descent), t * -0.13);
-  ro.y += sin(t * 0.56) * 0.065;
-  float cameraWater = swell(ro.xz, t).x;
-  float wet = 1.0 - smoothstep(-0.10, 0.10, ro.y - cameraWater);
-  float glassSurface = (1.0 - smoothstep(0.27, 0.62, u_dive)) * (1.0 - wet) * u_motion;
-  float impact;
-  vec4 glass = glassLens(v_uv * vec2(aspect, 1.0), max(u_time - 12.0, 0.0), glassSurface, impact);
-  uv += glass.xy * 2.0;
-  uv += vec2(sin(u_time * 43.0), cos(u_time * 37.0)) * impact * 0.0015;
-  ro.y -= impact * 0.10;
-  wet = 1.0 - smoothstep(-0.10, 0.10, ro.y - cameraWater);
-  float pitch = mix(-0.09, 0.24, dive);
+  float t = u_time * 0.55;
+  // Scroll moves the observer along the dry side of the pane. The pane and
+  // water volume never move with the camera or rise as a screen-space mask.
+  vec3 ro = vec3(0.0, mix(0.68, -1.65, dive), 2.8);
+  float pitch = mix(-0.045, 0.20, dive);
   vec3 forward = normalize(vec3(0.0, pitch, -1.0));
   vec3 right = vec3(1.0, 0.0, 0.0);
   vec3 up = cross(right, forward);
-  vec3 rd = normalize(forward * 1.65 + right * uv.x + up * uv.y);
-  vec3 color = sky(rd);
-  float hit = intersectOcean(ro, rd, t);
-  if (hit > 0.0 && wet < 1.0) {
-    vec3 p = ro + rd * hit;
-    vec3 n = waterNormal(p.xz, t, hit);
-    float facing = max(dot(n, -rd), 0.0);
-    float fresnel = 0.0204 + 0.9796 * pow(1.0 - facing, 5.0);
-    vec3 reflected = sky(reflect(rd, n));
-    vec3 body = mix(vec3(0.015, 0.19, 0.22), vec3(0.004, 0.065, 0.12), u_night);
-    float scatter = pow(max(dot(rd, -normalize(SUN)), 0.0), 4.0) * max(p.y + 0.35, 0.0);
-    body += vec3(0.015, 0.13, 0.12) * scatter;
-    color = mix(body, reflected, fresnel);
-    float sun = pow(max(dot(reflect(rd, n), normalize(SUN)), 0.0), 420.0);
-    color += vec3(1.0, 0.84, 0.60) * sun * mix(1.7, 0.08, u_night);
-    float haze = 1.0 - exp(-hit * hit * 0.000035);
-    color = mix(color, sky(vec3(rd.x, 0.005, rd.z)), haze * 0.85);
+  vec3 rd = normalize(forward * 1.85 + right * uv.x + up * uv.y);
+  vec3 pane = ro + rd * (-ro.z / rd.z);
+  float surface = swell(pane.xz, t).x;
+  float pixel = max(0.003, 3.0 / u_resolution.y);
+  float submerged = 1.0 - smoothstep(-pixel, pixel, pane.y - surface);
+  vec3 color;
+  // Only evaluate both optical paths in the antialiased water contact band.
+  if (submerged < 0.999) color = fromAir(pane, rd, t);
+  else color = vec3(0.0);
+  if (submerged > 0.001) {
+    // Air -> plane parallel glass -> water. For the parallel interfaces the
+    // emergent direction depends on air/water IOR; the glass stays invisible.
+    vec3 inside = refract(rd, vec3(0.0, 0.0, 1.0), 1.0 / 1.333);
+    vec3 water = fromWater(pane + inside * 0.012, inside, t);
+    color = mix(color, water, submerged);
   }
-  if (wet > 0.0) color = mix(color, belowWater(ro, rd, t, hit), wet);
-  // A gentle lens tint softens the waterline transition without a flash.
-  float waterline = exp(-abs(ro.y - cameraWater) * 8.0);
-  color = mix(color, color * vec3(0.64, 0.91, 0.91), waterline * 0.35);
-  // Mostly clear water: curvature does the work; only the rims catch the light.
-  color *= mix(vec3(1.0), vec3(0.70, 0.92, 0.94), clamp(glass.z, 0.0, 1.0) * 0.48);
-  color *= 1.0 - max(-glass.w, 0.0) * 0.28;
-  color += vec3(0.64, 0.85, 0.90) * max(glass.w, 0.0) * mix(0.55, 0.25, u_night);
-  color *= 1.0 - 0.14 * dot(v_uv - 0.5, v_uv - 0.5);
+  // A restrained meniscus makes contact visible without glass glare or drops.
+  float contact = exp(-abs(pane.y - surface) / (pixel * 1.3));
+  color *= 1.0 - contact * 0.12;
+  color *= 1.0 - 0.09 * dot(v_uv - 0.5, v_uv - 0.5);
   color = pow(max(color, 0.0), vec3(0.92));
   gl_FragColor = vec4(color, 1.0);
 }`;
 
 export interface OceanScene {
   resize: (width: number, height: number, scale: number) => void;
-  render: (time: number, dive: number, night: number, motion: number) => void;
+  render: (time: number, dive: number, night: number) => void;
   dispose: () => void;
 }
 
@@ -338,7 +308,6 @@ export function createOceanScene(canvas: HTMLCanvasElement, compact: boolean): O
     const time = gl.getUniformLocation(program, 'u_time');
     const dive = gl.getUniformLocation(program, 'u_dive');
     const night = gl.getUniformLocation(program, 'u_night');
-    const motion = gl.getUniformLocation(program, 'u_motion');
     gl.uniform1f(gl.getUniformLocation(program, 'u_detail'), compact ? 0 : 1);
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
@@ -353,11 +322,10 @@ export function createOceanScene(canvas: HTMLCanvasElement, compact: boolean): O
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.uniform2f(resolution, canvas.width, canvas.height);
       },
-      render(seconds, progress, dark, animate) {
+      render(seconds, progress, dark) {
         gl.uniform1f(time, seconds);
         gl.uniform1f(dive, progress);
         gl.uniform1f(night, dark);
-        gl.uniform1f(motion, animate);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       },
       dispose,
