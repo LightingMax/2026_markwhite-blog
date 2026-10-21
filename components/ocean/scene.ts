@@ -191,13 +191,55 @@ float fresnelWater(float cosine) {
   return 0.0204 + 0.9796 * pow(1.0 - clamp(cosine, 0.0, 1.0), 5.0);
 }
 
+// Restore the original open-ocean atmosphere below the surface: no floor or
+// reflected floor, only distant blue water, dim overhead light and particles.
+vec3 deepWater(vec3 ro, vec3 rd, float t, float hit) {
+  vec3 deep = mix(vec3(0.012, 0.105, 0.16), vec3(0.004, 0.032, 0.075), u_night);
+  float depth = max(-ro.y, 0.0);
+  float daylight = exp(-depth * 0.14);
+  float up = smoothstep(-0.45, 0.9, rd.y);
+  vec3 color = mix(deep * 0.52, vec3(0.035, 0.28, 0.35) * mix(1.0, 0.4, u_night), up);
+  if (hit > 0.0) {
+    vec3 p = ro + rd * hit;
+    vec3 n = waterNormal(p.xz, t, hit);
+    vec3 transmitted = refract(rd, -n, 1.333);
+    float window = smoothstep(0.61, 0.85, dot(rd, n));
+    vec3 reflection = mix(deep, vec3(0.10, 0.38, 0.42) * mix(1.0, 0.3, u_night),
+      pow(max(dot(reflect(rd, -n), normalize(SUN)), 0.0), 4.0));
+    color = reflection;
+    if (dot(transmitted, transmitted) > 0.01) {
+      color = mix(reflection, sky(transmitted) * vec3(0.48, 0.88, 0.85), window);
+    }
+    color = mix(color, deep, 1.0 - exp(-hit * 0.07));
+  }
+  color *= daylight;
+  float beamPos = (rd.x + 0.22) / max(rd.y + 1.15, 0.3);
+  float beams = pow(0.5 + 0.5 * sin(beamPos * 31.0 + sin(beamPos * 12.0 + t * 0.08)), 12.0);
+  beams += pow(0.5 + 0.5 * sin(beamPos * 51.0 - t * 0.04), 18.0) * 0.35;
+  color += vec3(0.08, 0.28, 0.29) * beams * 0.11 * up * daylight * mix(1.0, 0.35, u_night);
+  vec2 particles = v_uv * vec2(u_resolution.x / u_resolution.y, 1.0) * 95.0 + vec2(t * 0.17, -t * 0.37);
+  vec2 cell = floor(particles);
+  float speck = (1.0 - smoothstep(0.025, 0.11, length(fract(particles) - vec2(hash(cell), hash(cell + 3.7)))))
+    * step(0.975, hash(cell + 7.9));
+  color += vec3(0.18, 0.38, 0.40) * speck * 0.35 * daylight;
+  return color;
+}
+
+float abyssBlend() {
+  return smoothstep(0.08, 0.55, u_dive);
+}
+
 vec3 fromAir(vec3 ro, vec3 rd, float t) {
   float hit = intersectOcean(ro, rd, t);
   if (hit < 0.0) return sky(rd);
   vec3 p = ro + rd * hit;
   vec3 n = waterNormal(p.xz, t, hit);
   vec3 transmittedRay = refract(rd, n, 1.0 / 1.333);
-  vec3 transmitted = traceBed(p + transmittedRay * 0.012, transmittedRay, t);
+  float abyss = abyssBlend();
+  vec3 transmitted = deepWater(p, transmittedRay, t, -1.0);
+  if (abyss < 0.999) {
+    transmitted = mix(traceBed(p + transmittedRay * 0.012, transmittedRay, t), transmitted, abyss);
+  }
   vec3 reflected = sky(reflect(rd, n));
   float sun = pow(max(dot(reflect(rd, n), normalize(SUN)), 0.0), 480.0);
   reflected += vec3(1.0, 0.87, 0.67) * sun * mix(1.5, 0.05, u_night);
@@ -206,7 +248,7 @@ vec3 fromAir(vec3 ro, vec3 rd, float t) {
   return mix(color, sky(vec3(rd.x, 0.005, rd.z)), haze * 0.75);
 }
 
-vec3 fromWater(vec3 ro, vec3 rd, float t) {
+vec3 fromShallowWater(vec3 ro, vec3 rd, float t) {
   float surfaceHit = intersectOcean(ro, rd, t);
   float bedHit = rd.y < -0.001 ? (BED - ro.y) / rd.y : 1000.0;
   if (surfaceHit < 0.0 || bedHit < surfaceHit) return traceBed(ro, rd, t);
@@ -225,6 +267,14 @@ vec3 fromWater(vec3 ro, vec3 rd, float t) {
   return waterFog(color, surfaceHit);
 }
 
+vec3 fromWater(vec3 ro, vec3 rd, float t) {
+  float abyss = abyssBlend();
+  if (abyss < 0.001) return fromShallowWater(ro, rd, t);
+  vec3 deep = deepWater(ro, rd, t, intersectOcean(ro, rd, t));
+  if (abyss > 0.999) return deep;
+  return mix(fromShallowWater(ro, rd, t), deep, abyss);
+}
+
 void main() {
   float aspect = u_resolution.x / u_resolution.y;
   vec2 uv = (v_uv * 2.0 - 1.0) * vec2(aspect, 1.0);
@@ -233,6 +283,8 @@ void main() {
   // Scroll moves the observer along the dry side of the pane. The pane and
   // water volume never move with the camera or rise as a screen-space mask.
   vec3 ro = vec3(0.0, mix(0.68, -1.65, dive), 2.8);
+  // Continue descending into open water after leaving the bright surface.
+  ro.y -= smoothstep(0.25, 1.0, dive) * 3.0;
   float pitch = mix(-0.045, 0.20, dive);
   vec3 forward = normalize(vec3(0.0, pitch, -1.0));
   vec3 right = vec3(1.0, 0.0, 0.0);
