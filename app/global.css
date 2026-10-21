@@ -126,3 +126,103 @@ a { text-underline-offset: 3px; }
   .home-footer { gap: 12px; flex-direction: column; }
   #nd-page { padding-top: 38px; }
 }
+
+/* Full-bleed cover. All ocean colors are scoped; article themes stay independent. */
+.ocean-home { width: 100%; }
+.ocean-cover { --ocean-dive: 0; position: relative; height: 185svh; min-height: 850px; color: #f5f2e9; background: #07303e; }
+.ocean-stage { position: sticky; top: 56px; height: calc(100svh - 56px); min-height: 480px; overflow: hidden; isolation: isolate; background: #07303e; }
+.ocean-canvas, .ocean-fallback, .ocean-scrim { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.ocean-fallback { background: #234f60 url('/blog/assets/ocean/still.svg') center / cover; }
+.dark .ocean-fallback { filter: brightness(.55) saturate(.8); }
+.ocean-canvas { opacity: 0; transition: opacity .8s ease; }
+.ocean-cover[data-rendered='true'] .ocean-canvas { opacity: 1; }
+.ocean-cover:not([data-rendered='true']) .ocean-pause { display: none; }
+.ocean-scrim { background: linear-gradient(90deg, rgba(2, 19, 29, .47), rgba(2, 19, 29, .08) 60%, transparent), linear-gradient(0deg, rgba(2, 19, 29, .42), transparent 25%, transparent 85%, rgba(2, 19, 29, .08)); }
+.ocean-copy { position: relative; width: min(1100px, calc(100% - 64px)); margin: 0 auto; padding-top: clamp(70px, 15svh, 180px); opacity: clamp(0, calc(1 - var(--ocean-dive) * 1.6), 1); transform: translateY(calc(var(--ocean-dive) * -55px)); }
+.ocean-kicker, .ocean-submerged > span, .reading-intro > span { color: #d6e3e5; font: 400 10px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .15em; }
+.ocean-kicker span { margin: 0 13px; opacity: .6; }
+.ocean-copy h1 { margin: 30px 0 26px; font-family: 'Iowan Old Style', 'Palatino Linotype', 'Songti SC', Georgia, serif; font-size: clamp(54px, 7.5vw, 104px); font-weight: 400; line-height: 1.12; letter-spacing: -.055em; text-shadow: 0 2px 25px rgba(0, 15, 27, .16); }
+.ocean-copy h1 em { font-style: normal; color: #f5f2e9; }
+.ocean-lede { font-size: 15px; line-height: 1.95; color: #e0e9e8; text-shadow: 0 1px 12px #103442; }
+.ocean-links { display: flex; align-items: center; gap: 30px; margin-top: 34px; }
+.ocean-read { display: inline-flex; align-items: center; justify-content: space-between; gap: 44px; padding: 13px 18px; border: 1px solid rgba(245, 242, 233, .65); background: rgba(5, 29, 41, .2); color: #f5f2e9; font-size: 13px; transition: background .2s, border-color .2s; }
+.ocean-read:hover { background: rgba(5, 29, 41, .55); border-color: #f5f2e9; }
+.ocean-read span { font-size: 18px; }
+.ocean-skip { font-size: 12px; color: #e0e9e8; }
+.ocean-skip span { margin-left: 14px; }
+.ocean-read:focus-visible, .ocean-skip:focus-visible, .ocean-scroll:focus-visible, .ocean-pause:focus-visible { outline: 2px solid #f5f2e9; outline-offset: 6px; }
+.ocean-copy:focus-within { opacity: 1; }
+.ocean-cover[data-submerged='true'] .ocean-copy { pointer-events: none; }
+.ocean-cover[data-submerged='true'] .ocean-copy:focus-within { pointer-events: auto; }
+.ocean-submerged { position: absolute; top: 45%; left: 0; right: 0; text-align: center; opacity: clamp(0, calc((var(--ocean-dive) - .65) * 4), 1); transform: translateY(calc((1 - var(--ocean-dive)) * 25px)); pointer-events: none; }
+.ocean-submerged p { margin-top: 18px; font: 400 clamp(28px, 4vw, 48px)/1.4 'Iowan Old Style', 'Songti SC', Georgia, serif; letter-spacing: .05em; }
+.ocean-submerged > span { color: #b8d3d6; font-size: 9px; letter-spacing: .25em; }
+.ocean-caption { position: absolute; bottom: 30px; left: max(32px, calc((100% - 1100px) / 2)); right: max(32px, calc((100% - 1100px) / 2)); display: flex; align-items: center; justify-content: space-between; gap: 20px; color: #e1eaea; }
+.ocean-scroll, .ocean-pause { display: inline-flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: .09em; }
+.ocean-scroll-line { display: inline-block; height: 32px; width: 1px; background: linear-gradient(180deg, transparent, #d5e5e6); transform-origin: top; animation: ocean-scroll-cue 2.8s ease-in-out infinite; }
+.ocean-cover[data-paused='true'] .ocean-scroll-line { animation-play-state: paused; }
+.ocean-pause { padding: 10px 0 10px 10px; cursor: pointer; color: #e1eaea; }
+.ocean-pause:hover { color: #fff; }
+.ocean-pause > span { width: 10px; font-size: 13px; }
+.home-reading { position: relative; padding-top: 0; scroll-margin-top: 76px; }
+.reading-intro { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding: 54px 0 48px; }
+.reading-intro > span { color: var(--mw-accent); font-size: 10px; }
+.reading-intro > p { margin: 0; font: 400 23px/1.4 'Iowan Old Style', 'Songti SC', Georgia, serif; letter-spacing: -.025em; }
+#about { scroll-margin-top: 84px; }
+@keyframes ocean-scroll-cue { 0%, 100% { transform: scaleY(.65); opacity: .45; } 50% { transform: scaleY(1); opacity: .9; } }
+@media (max-width: 760px) {
+  .ocean-cover { height: 170svh; min-height: 800px; }
+  .ocean-stage { min-height: 460px; }
+  .ocean-copy { width: calc(100% - 40px); padding-top: clamp(68px, 15svh, 130px); }
+  .ocean-copy h1 { font-size: clamp(49px, 12vw, 76px); margin-top: 25px; }
+  .ocean-kicker { font-size: 8px; letter-spacing: .07em; }
+  .ocean-kicker span { margin: 0 7px; }
+  .ocean-lede { font-size: 13px; }
+  .ocean-links { gap: 22px; margin-top: 28px; }
+  .ocean-read { padding: 11px 15px; gap: 26px; }
+  .ocean-caption { bottom: 22px; left: 20px; right: 20px; }
+  .ocean-scroll, .ocean-pause { font-size: 10px; letter-spacing: .02em; }
+  .reading-intro { padding: 35px 0; flex-direction: column; gap: 10px; }
+  .reading-intro > p { font-size: 22px; }
+}
+@media (max-height: 620px) and (min-width: 761px) {
+  .ocean-copy { padding-top: 35px; }
+  .ocean-copy h1 { font-size: 56px; margin: 20px 0; }
+  .ocean-lede { font-size: 13px; }
+  .ocean-links { margin-top: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .ocean-cover { height: calc(100svh - 56px); min-height: 600px; }
+  .ocean-stage { position: relative; top: 0; height: 100%; }
+  .ocean-copy { opacity: 1; transform: none; }
+  .ocean-submerged, .ocean-pause { display: none; }
+  .ocean-scroll-line { animation: none; }
+  .ocean-canvas, .ocean-read { transition: none; }
+}
+.ocean-copy:focus-within ~ .ocean-submerged { opacity: 0; }
+@media (max-height: 620px) {
+  .ocean-stage { min-height: 0; }
+  .ocean-caption { bottom: 12px; }
+  .ocean-scroll-line { height: 20px; }
+}
+@media (max-height: 620px) and (min-width: 560px) {
+  .ocean-copy { display: grid; grid-template-columns: 1.1fr 1fr; column-gap: 32px; padding-top: 24px; }
+  .ocean-kicker { grid-column: 1 / -1; font-size: 8px; }
+  .ocean-copy h1 { grid-column: 1; grid-row: 2 / 4; margin: 18px 0 0; font-size: clamp(38px, 6vw, 64px); }
+  .ocean-lede { grid-column: 2; grid-row: 2; margin-top: 18px; font-size: 12px; }
+  .ocean-links { grid-column: 2; grid-row: 3; margin-top: 14px; gap: 18px; }
+  .ocean-read { padding: 9px 12px; gap: 20px; font-size: 12px; }
+  .ocean-skip { font-size: 11px; }
+}
+@media (max-height: 620px) and (max-width: 559px) {
+  .ocean-copy { padding-top: 35px; }
+  .ocean-copy h1 { font-size: 44px; margin: 20px 0; }
+  .ocean-links { margin-top: 20px; }
+}
+@media (max-height: 520px) and (max-width: 559px) {
+  .ocean-copy { padding-top: 20px; }
+  .ocean-copy h1 { font-size: 38px; margin: 12px 0; }
+  .ocean-lede { font-size: 12px; line-height: 1.7; }
+  .ocean-links { margin-top: 14px; }
+}

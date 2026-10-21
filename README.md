@@ -2,6 +2,10 @@
 
 [https://markwhite.cn/blog/](https://markwhite.cn/blog/) 的公开源代码、文章和实验素材。视觉基调保持克制：一个文章入口，主题在侧栏中展开，支持跟随浏览器的浅色/深色模式。
 
+## 海面封面
+
+首页使用轻量原生 WebGL 实时绘制海浪，向下滚动时潜入水下。支持暂停、跟随浅色/深色主题、减少动态效果和无 WebGL 降级。实现和性能边界见 [docs/ocean-cover.md](docs/ocean-cover.md)。
+
 ## 内容结构
 
 - `content/docs/computer-vision/camera-color`：颜色与相机成像专题（9 篇）

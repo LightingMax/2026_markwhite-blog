@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OceanHero } from '@/components/ocean/hero';
 
 const entries = [
   {
@@ -40,16 +41,10 @@ const entries = [
 
 export default function HomePage() {
   return (
-    <main className="site-home">
-      <section className="home-hero">
-        <p className="home-kicker">MARK WHITE / NOTES ON SEEING & BUILDING</p>
-        <h1>把复杂的事，<br /><em>写清楚。</em></h1>
-        <p className="home-lede">记录计算机视觉、相机与色彩、工程实践，以及在这些问题旁边慢慢形成的想法。</p>
-        <div className="home-hero-links">
-          <Link href="/docs/" className="home-primary-link">进入文章 <span>↗</span></Link>
-          <a href="#about" className="home-secondary-link">关于这个空间 <span>↓</span></a>
-        </div>
-      </section>
+    <main className="ocean-home">
+      <OceanHero />
+      <div className="site-home home-reading" id="writing" tabIndex={-1}>
+        <div className="reading-intro"><span>BELOW THE SURFACE</span><p>把看见的，变成理解的。</p></div>
 
       <section className="home-section" aria-labelledby="featured-heading">
         <div className="section-heading">
@@ -94,6 +89,7 @@ export default function HomePage() {
         </div>
       </section>
       <footer className="home-footer"><span>© 2026 Mark White</span><span>Made for careful thinking.</span></footer>
+      </div>
     </main>
   );
 }
