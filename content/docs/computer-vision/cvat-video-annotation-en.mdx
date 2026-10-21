@@ -1,0 +1,208 @@
+---
+title: "Choosing an Annotation Platform: Video Tracking and Action Phase Annotation with CVAT"
+description: "A practical CVAT 2.65 workflow for video organization, instrument tracking, Outside states, and action phase tags."
+date: 2026-10-21
+tags:
+  - cvat
+  - video-annotation
+  - tracking
+  - action-recognition
+---
+
+[阅读中文版](/docs/computer-vision/cvat-video-annotation-zh/)
+
+Before training a computer vision model, there is usually another job to finish: labeling the data. Video makes this particularly interesting. We may need to record both where an object is and when a particular action begins or ends.
+
+This article follows my workflow for surgical training videos, from deploying CVAT and organizing the dataset to annotating instrument trajectories and action phases. The screenshots come from a self-hosted CVAT 2.65 installation. Interface details and default shortcuts may differ in other versions.
+
+## Why I chose CVAT
+
+Annotation tools serve different needs. [Labelme](https://github.com/wkentaro/labelme) is an option for starting with local image annotation. [Label Studio](https://labelstud.io/guide/) supports multiple data types and configurable annotation interfaces. For this project, which focuses on video, instrument trajectories, and frame-level phase labels, I prefer CVAT.
+
+My requirements are practical: organize videos, draw instrument boxes, maintain object identities, and mark action phases in one browser interface. I also want to manage projects in batches through an API. CVAT fits that workflow well. The goal is to choose a tool that supports consistent annotation and a reliable path into model training.
+
+## Deploying CVAT with help from AI
+
+An AI coding assistant can take much of the repetitive work out of deployment. Give it a server, explain the environment, data directories, and access requirements, and ask it to install CVAT, verify the service, and create an administrator account.
+
+A useful request might be:
+
+> Deploy CVAT Community on the specified server with persistent storage. Create an administrator account and verify both the web interface and API. Report the access URL, data locations, and backup procedure when finished.
+
+This still leaves a few things for us to understand: where the data lives, how to access the service, and how to recover it. AI can handle the commands, while we keep control of those decisions.
+
+For the local-account deployment used here, the username and email address are separate fields. Providing an email address does not necessarily mean that email is the only supported login identifier. Check the authentication behavior of your installation. I recommend using a clear username and an email address you can access, then keeping the account details somewhere secure.
+
+![CVAT login page](/blog/assets/cvat-annotation/image-20261021093130761.png)
+
+## Organize the dataset before importing it
+
+I would avoid placing every video into one large project at the start. First identify the task types and establish a consistent naming convention. Importing, annotation, and training become much easier when that information is explicit.
+
+For example:
+
+```text
+tasktype_operator_session_originalname.mp4
+suturing_P001_session01_IMG_1422.mov
+peg_transfer_P001_session01_IMG_1419.mov
+```
+
+Here, `tasktype` identifies the procedure, `operator` identifies the participant, and `session` identifies the recording session. The original filename stays at the end. Preserve information already present in the source names, and keep a separate mapping table for more detailed metadata.
+
+A participant ID can link to a proficiency record, but the ID alone does not establish skill level. When splitting the dataset for training and evaluation, consider grouping by participant so that similar recordings from the same person do not appear on both sides.
+
+Once these rules are defined, AI can use the CVAT API to create projects and tasks from filenames or directory metadata. Before importing, check for duplicates, verify that videos decode correctly, and confirm that the tasks do not already exist.
+
+I organized this dataset into three procedure categories: `paper_cutting`, `peg_transfer`, and `suturing`. I also kept a `review_mixed` project for videos with conflicting directory information that need manual review. It is a review bucket, not a fourth procedure category.
+
+![Projects organized by procedure type](/blog/assets/cvat-annotation/image-20261021094508433.png)
+
+### Project, Task, and Job
+
+My setup uses this structure:
+
+```text
+Project: one procedure category, such as suturing
+└── Task: one video
+    └── Job: the unit opened for annotation
+```
+
+In this dataset, each video task has one annotation job. That is a configuration choice, not a limitation of video tasks. Longer videos can be divided into frame segments and assigned as multiple jobs. A Job divides annotation work; it does not represent an action phase. See the [CVAT task segmentation examples](https://docs.cvat.ai/docs/api_sdk/cli/).
+
+Open a Project to find its video Tasks, then open a Job to start annotating.
+
+![Video tasks inside a project](/blog/assets/cvat-annotation/image-20261021102319294.png)
+
+![A task and its annotation job](/blog/assets/cvat-annotation/image-20261021102351925.png)
+
+## Before drawing: understand Label, Track, and Tag
+
+These terms are easy to confuse:
+
+| Term | Meaning in this workflow | Example |
+| --- | --- | --- |
+| Label | A predefined category that can also restrict the annotation type | Needle holder, dissector, or needle positioning |
+| Track | One particular object linked across frames, with its own ID | Track 1 represents a particular needle holder in this video |
+| Tag | A frame-level annotation without geometry, using a Label | Adding `n_positioning` to a phase transition frame |
+
+Having two instrument classes does not mean the project must contain only two Labels. Instrument Labels use the `rectangle` type, while phase Labels use the `tag` type. Both can belong to the same project, but they are applied with different tools.
+
+This also explains something I encountered while configuring the project: after the phase Tag Labels were deleted, the corresponding tool was no longer available in that setup. Restoring the label configuration and reopening the Job made it available again.
+
+## Object tracking: maintain trajectories with keyframes
+
+### Define the instrument tip consistently
+
+My main instrument classes are:
+
+- `needleholder`: the needle holder.
+- `dissector`: the dissector.
+
+Before annotating, decide what the box should cover. If the purpose is to analyze the instrument tip's motion, draw around its working end. Do not include the entire shaft in some frames and only the tip in others.
+
+For a team, review a few sample frames together first. Agree on the tip boundary, how to handle open jaws, and what to do when the instrument is partially occluded. Consistency matters more than speed alone.
+
+### Create a Track rather than a new Shape on every frame
+
+Choose **Draw new rectangle** in the left toolbar, select **Track**, choose the instrument Label, and draw the box.
+
+![Creating a rectangle track](/blog/assets/cvat-annotation/image-20261021102809146.png)
+
+CVAT can interpolate box position and size between neighboring keyframes. Draw the initial box, move to a later frame, and adjust it there. CVAT calculates the intermediate boxes from those keyframes.
+
+Interpolation does not understand the instrument's actual motion. Sudden turns, fast movement, scale changes, and occlusion can all produce inaccurate intermediate boxes. I play the video to inspect the result, pause to add keyframes where needed, and then review the interval in both directions.
+
+![Adjusting keyframes and reviewing interpolation](/blog/assets/cvat-annotation/image-20261021103048727.png)
+
+Useful defaults are `D` for the previous frame, `F` for the next frame, and Space to play or pause. If a shortcut stops responding, press `Esc` to leave the current dialog or tool, switch to an English keyboard input mode if necessary, and check whether a search field, Label selector, or frame-number field has keyboard focus. Check **Settings → Shortcuts** for the bindings in your installation.
+
+### Mark an object as Outside when it leaves the frame
+
+When an instrument completely leaves the image, do not leave its box floating over empty space or delete the entire trajectory.
+
+Adjust the box on the last visible frame. On the first fully invisible frame, switch that Track's **Outside** property on. The default shortcut is the letter `O`. This marks the object as invisible from that frame. See the [CVAT Track mode guide](https://docs.cvat.ai/docs/annotation/tools/track-mode-advanced/).
+
+![Switching a track's Outside property](/blog/assets/cvat-annotation/image-20261021104305719.png)
+
+If only part of the instrument is outside the image, continue annotating the visible portion according to your agreed policy. Also distinguish an object leaving the image from an object being occluded by something else; not every visibility problem means Outside.
+
+### Find the original Track when the object returns
+
+This was the most confusing part of my first attempt. After marking a Track as Outside, both its box and its entry in the Objects sidebar disappeared. When the instrument returned, I could not find the original Track to restore it.
+
+The relevant option is under **Settings → Workspace**:
+
+```text
+Show all interpolation tracks
+```
+
+Enable it to keep Outside tracks listed in the Objects sidebar. Showing their entries does not make the objects visible in the annotations or change their Outside state.
+
+![The setting for displaying all interpolation tracks](/blog/assets/cvat-annotation/image-20261021105704728.png)
+
+When the same dissector returns, stop on its first visible frame, find the original Track in the sidebar, switch Outside off, and move the restored box into the correct position.
+
+For example, suppose frame 100 is the last visible frame. Mark frame 101 as Outside, then restore visibility at frame 150. Frames 101–149 should have no visible box, while the two visible sections can belong to the same trajectory.
+
+![Restoring the original track and adjusting its box](/blog/assets/cvat-annotation/image-20261021110153398.png)
+
+Drawing a new Track when the instrument returns creates a new ID. Two instrument classes do not guarantee only two Track IDs: IDs refer to particular instances or trajectory fragments. If two fragments belong to the same object, they can be merged. If the identity is uncertain, keep them separate.
+
+## Action phases: place Tags on transition frames
+
+Instrument tracks describe where an object is. Phase Tags describe what is happening at a particular moment. Add them with the **Tag tool** in the left toolbar; they do not need boxes around the instruments.
+
+For suturing, I use short names that are easier to select in the sidebar:
+
+| Tag | Meaning |
+| --- | --- |
+| `n_positioning` | Needle positioning |
+| `n_insertion` | Needle insertion |
+| `n_extraction` | Needle extraction |
+| `s_retract` | Taking up the suture |
+| `s_loop` | Looping the suture |
+| `s_pull` | Pulling the suture tight |
+| `s_cut` | Cutting the suture |
+
+Paper cutting and peg transfer need their own phase definitions. They should not inherit this suturing vocabulary automatically. Before labeling the full dataset, annotate one sample video and agree on how to recognize each phase boundary.
+
+![Adding a phase tag at the beginning of an action](/blog/assets/cvat-annotation/image-20261021111151541.png)
+
+### Continuous, mutually exclusive phases: mark each start frame
+
+If only one main phase applies at a time and the phases continuously cover the annotated interval, mark the first frame of each new phase:
+
+```text
+Frame 100: n_positioning
+Frame 150: n_insertion
+Frame 210: n_extraction
+Frame 260: other
+```
+
+Our convention assigns each phase to the frames before the next transition. Frames 100–149 are needle positioning, 150–209 are needle insertion, and 210–259 are needle extraction.
+
+These intervals are reconstructed during export and preprocessing. A native CVAT Tag records a particular frame; adding a start Tag does not automatically label all subsequent frames. The interval interpretation is part of our dataset convention.
+
+I keep three supporting Tags: `other` for identifiable preparation, pauses, or activity outside the target phases; `unclear` when the phase cannot be determined; and `end` as the end boundary of an annotated interval. The frame marked `end` is excluded from the preceding phase. If annotation continues through the final video frame, preprocessing can close the interval at the end of the video. Unannotated footage should not automatically become `other`.
+
+### Independent or overlapping actions: mark both boundaries
+
+Start-only Tags are insufficient when actions have gaps or can overlap. In that case, paired boundary Tags such as `action_start` and `action_end` can be used, with a clear rule about whether the end frame is included. Repeated or overlapping instances may also need an instance identifier to pair their boundaries reliably.
+
+The choice depends on continuity, exclusivity, and instance identity, rather than annotation density alone.
+
+Keep video identifiers, frame numbers, and timing information together. If the video was subsampled or trimmed during import, preserve the mapping from CVAT frames to the source video. Constant-frame-rate footage allows frame-rate-based conversion to seconds; variable-frame-rate footage should use its actual timestamps.
+
+These human annotations provide ground truth for training an action recognition model. A trained model can then predict phases from the appearance and motion in a new video. Recording timestamps alone does not perform action recognition.
+
+## Save, review, and test an export
+
+Save regularly, and consider enabling automatic saving in Settings. Follow the save shortcut shown in your installation, commonly `Ctrl+S`, rather than relying on a final save when closing the page.
+
+![Saving the annotation work](/blog/assets/cvat-annotation/image-20261021111443638.png)
+
+Before exporting, I review whether the instrument boxes follow one consistent definition, Outside transitions occur on the right frames, returning instruments have accidentally created duplicate trajectories, and phase boundaries are missing.
+
+The export format also matters. Detection boxes alone may not preserve everything needed for trajectory and phase analysis. Export a small task first, inspect its Track IDs, keyframes, Outside states, and frame-level Tags, and only then process the full dataset. Consult the [CVAT format documentation](https://docs.cvat.ai/docs/dataset_management/formats/format-cvat/) for format details.
+
+For more key bindings, see the [official CVAT shortcuts documentation](https://docs.cvat.ai/docs/getting_started/shortcuts/). In my workflow, AI is useful for deployment, batch imports, and format conversion. We still need to define which targets matter, what each box should cover, and how to recognize an action boundary.
