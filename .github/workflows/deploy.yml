@@ -47,5 +47,7 @@ jobs:
           timeout 20 ssh-keyscan -T 10 -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
           stage_path="/tmp/markwhite-blog-${GITHUB_RUN_ID}"
           ssh_opts="-i ~/.ssh/blog_deploy -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=3"
-          timeout 15m rsync -a --delete --partial --timeout=60 -e "ssh $ssh_opts" out/ "$DEPLOY_USER@$DEPLOY_HOST:$stage_path/"
+          # Reuse identical files from the current release in the new staging
+          # directory. Checksums work across builds with different timestamps.
+          timeout 15m rsync -a --checksum --copy-dest=/var/www/blog --delete --partial --timeout=60 -e "ssh $ssh_opts" out/ "$DEPLOY_USER@$DEPLOY_HOST:$stage_path/"
           timeout 2m ssh $ssh_opts "$DEPLOY_USER@$DEPLOY_HOST" "sudo mv /var/www/blog /var/www/blog.previous-${GITHUB_RUN_ID}; sudo mv $stage_path /var/www/blog; sudo chown -R root:root /var/www/blog; sudo nginx -t; sudo systemctl reload nginx"
