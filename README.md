@@ -4,7 +4,7 @@
 
 ## 海面封面
 
-首页使用轻量原生 WebGL 实时绘制海浪，向下滚动时潜入水下。支持暂停、跟随浅色/深色主题、减少动态效果和无 WebGL 降级。实现和性能边界见 [docs/ocean-cover.md](docs/ocean-cover.md)。
+首页使用轻量原生 WebGL 实时绘制海浪：浪头拍上玻璃，水膜退去后留下折射海景的水珠；向下滚动时潜入水下。支持暂停、跟随浅色/深色主题、减少动态效果和无 WebGL 降级。实现和性能边界见 [docs/ocean-cover.md](docs/ocean-cover.md)。
 
 ## 内容结构
 

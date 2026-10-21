@@ -15,6 +15,7 @@ uniform float u_time;
 uniform float u_dive;
 uniform float u_night;
 uniform float u_detail;
+uniform float u_motion;
 
 const vec3 SUN = vec3(0.58, 0.24, -0.78);
 
@@ -60,6 +61,88 @@ float noise(vec2 p) {
   f = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
     mix(hash(i + vec2(0.0, 1.0)), hash(i + 1.0), f.x), f.y);
+}
+
+// Beads stay attached to the screen plane. Their curved faces bend the view,
+// while a narrow highlight and shadow reveal the glass rather than painting dots.
+vec4 glassBeads(vec2 p, float age, float seed, float scale, float threshold) {
+  vec2 grid = p * scale;
+  float column = floor(grid.x);
+  float fall = max(age - 2.4, 0.0);
+  grid.y += fall * (0.12 + hash(vec2(column, seed)) * 0.22);
+  vec2 cell = floor(grid);
+  vec2 local = fract(grid);
+  float random = hash(cell + seed);
+  float active = smoothstep(threshold, threshold + 0.08, random);
+  vec2 center = vec2(0.25 + 0.5 * hash(cell + seed + 2.1),
+    0.28 + 0.24 * hash(cell + seed + 5.7));
+  float radius = 0.11 + 0.085 * hash(cell + seed + 9.2);
+  vec2 delta = local - center;
+  vec2 q = delta / vec2(radius, radius * 1.16);
+  float r2 = dot(q, q);
+  float body = 1.0 - smoothstep(0.78, 1.0, r2);
+  float rimWidth = max(1.0 / 21.0, scale / (radius * u_resolution.y) * 1.2);
+  float rim = exp(-abs(r2 - 0.83) / rimWidth);
+  vec2 direction = q / max(length(q), 0.001);
+  float light = dot(direction, normalize(vec2(-0.55, 0.83)));
+  float glint = rim * (max(light, 0.0) * 0.85 - max(-light, 0.0) * 0.42);
+  glint += exp(-dot(q - vec2(-0.30, 0.40), q - vec2(-0.30, 0.40)) * 95.0) * body * 0.38;
+  // A thin draining trail remains above each falling bead.
+  float tailX = delta.x + sin(delta.y * 14.0 + random * 6.0) * 0.012;
+  float tail = (1.0 - smoothstep(0.014, 0.045, abs(tailX)))
+    * smoothstep(0.03, 0.16, delta.y) * (1.0 - smoothstep(0.24, 0.46, delta.y));
+  tail *= smoothstep(1.8, 3.2, age) * 0.35;
+  vec2 bend = -q * body * (radius / scale) * 0.78;
+  bend.x -= tailX * tail * 0.09;
+  return vec4(bend, body + tail, glint + tail * 0.08) * active;
+}
+
+// An incoming wave hits the outside of a fixed glass plane, then drains away.
+// This only warps the ONE scene ray below: no second ocean pass or texture reads.
+vec4 glassLens(vec2 p, float seconds, float surface, out float impact) {
+  impact = 0.0;
+  if (surface < 0.001) return vec4(0.0);
+  float cycle = floor(seconds / 11.8);
+  float age = mod(seconds, 11.8);
+  if (age < 1.0 || age > 11.3) return vec4(0.0);
+  float seed = hash(vec2(cycle, 8.2));
+  float rise = smoothstep(1.05, 1.60, age);
+  float drain = 1.0 - smoothstep(2.05, 6.5, age);
+  float surge = rise * drain;
+  impact = smoothstep(1.15, 1.5, age) * exp(-max(age - 1.5, 0.0) * 8.0) * surface;
+  float width = u_resolution.x / u_resolution.y * 0.55 + 0.15;
+  float focus = (p.x - u_resolution.x / u_resolution.y * (0.55 + seed * 0.12)) / width;
+  float fan = exp(-focus * focus * 1.2);
+  float front = -0.12 + surge * (0.53 + seed * 0.07 + fan * 0.43);
+  front += surge * (sin(p.x * 7.0 + seed * 9.0) * 0.035
+    + sin(p.x * 18.0 - seconds * 0.8) * 0.018);
+  front += impact * sin(p.x * 31.0 + seed * 12.0) * 0.045;
+  float slope = surge * (cos(p.x * 7.0 + seed * 9.0) * 0.245
+    + cos(p.x * 18.0 - seconds * 0.8) * 0.324);
+  slope -= surge * fan * focus * 1.032 / width;
+  slope += impact * cos(p.x * 31.0 + seed * 12.0) * 1.395;
+  float distanceToFront = p.y - front;
+  float feather = max(0.003, 1.8 / u_resolution.y);
+  float film = (1.0 - smoothstep(-feather, feather, distanceToFront)) * rise;
+  float meniscus = exp(-abs(distanceToFront) * 100.0) * surge;
+  float a = p.x * 18.0 + p.y * 8.0 - seconds * 2.6;
+  float b = p.x * 31.0 - p.y * 12.0 + seconds * 3.3;
+  vec2 flow = vec2(cos(a) * 0.012 + cos(b) * 0.008,
+    cos(a) * 0.008 - cos(b) * 0.006) * film;
+  vec2 bend = flow + vec2(-slope, 1.0) * meniscus * 0.044;
+  float rim = meniscus * (0.35 + 0.12 * sin(p.x * 97.0 + sin(p.x * 23.0) * 3.0));
+  rim -= exp(-abs(distanceToFront + 0.022) * 90.0) * surge * 0.16;
+  float residue = smoothstep(1.35, 1.75, age) * (1.0 - smoothstep(8.0, 11.3, age));
+  vec4 beads = vec4(0.0);
+  if (residue > 0.001) {
+    residue *= (1.0 - film * 0.85) * (1.0 - smoothstep(0.83, 1.02, p.y));
+    beads = glassBeads(p, age, cycle * 7.1 + 1.4, 7.0, 0.66);
+    if (u_detail > 0.5) beads += glassBeads(p, age, cycle * 9.3 + 18.7, 13.0, 0.78) * 0.65;
+    bend += beads.xy * residue;
+  }
+  // A bounded offset prevents a large drop from throwing rays across the horizon.
+  bend = clamp(bend, vec2(-0.055), vec2(0.055));
+  return vec4(bend, film * 0.85 + beads.z * residue * 0.22, rim + beads.w * residue) * surface;
 }
 
 vec3 sky(vec3 rd) {
@@ -157,18 +240,27 @@ vec3 belowWater(vec3 ro, vec3 rd, float t, float hit) {
 }
 
 void main() {
-  vec2 uv = (v_uv * 2.0 - 1.0) * vec2(u_resolution.x / u_resolution.y, 1.0);
+  float aspect = u_resolution.x / u_resolution.y;
+  vec2 uv = (v_uv * 2.0 - 1.0) * vec2(aspect, 1.0);
   float dive = smoothstep(0.04, 0.96, u_dive);
   float t = u_time * 0.72;
-  vec3 ro = vec3(0.0, mix(2.45, -2.7, dive), t * -0.13);
+  float descent = smoothstep(0.08, 0.96, dive);
+  vec3 ro = vec3(0.0, mix(1.15, -1.75, descent), t * -0.13);
   ro.y += sin(t * 0.56) * 0.065;
+  float cameraWater = swell(ro.xz, t).x;
+  float wet = 1.0 - smoothstep(-0.10, 0.10, ro.y - cameraWater);
+  float glassSurface = (1.0 - smoothstep(0.27, 0.62, u_dive)) * (1.0 - wet) * u_motion;
+  float impact;
+  vec4 glass = glassLens(v_uv * vec2(aspect, 1.0), max(u_time - 12.0, 0.0), glassSurface, impact);
+  uv += glass.xy * 2.0;
+  uv += vec2(sin(u_time * 43.0), cos(u_time * 37.0)) * impact * 0.0015;
+  ro.y -= impact * 0.10;
+  wet = 1.0 - smoothstep(-0.10, 0.10, ro.y - cameraWater);
   float pitch = mix(-0.09, 0.24, dive);
   vec3 forward = normalize(vec3(0.0, pitch, -1.0));
   vec3 right = vec3(1.0, 0.0, 0.0);
   vec3 up = cross(right, forward);
   vec3 rd = normalize(forward * 1.65 + right * uv.x + up * uv.y);
-  float cameraWater = swell(ro.xz, t).x;
-  float wet = 1.0 - smoothstep(-0.10, 0.10, ro.y - cameraWater);
   vec3 color = sky(rd);
   float hit = intersectOcean(ro, rd, t);
   if (hit > 0.0 && wet < 1.0) {
@@ -190,6 +282,10 @@ void main() {
   // A gentle lens tint softens the waterline transition without a flash.
   float waterline = exp(-abs(ro.y - cameraWater) * 8.0);
   color = mix(color, color * vec3(0.64, 0.91, 0.91), waterline * 0.35);
+  // Mostly clear water: curvature does the work; only the rims catch the light.
+  color *= mix(vec3(1.0), vec3(0.70, 0.92, 0.94), clamp(glass.z, 0.0, 1.0) * 0.48);
+  color *= 1.0 - max(-glass.w, 0.0) * 0.28;
+  color += vec3(0.64, 0.85, 0.90) * max(glass.w, 0.0) * mix(0.55, 0.25, u_night);
   color *= 1.0 - 0.14 * dot(v_uv - 0.5, v_uv - 0.5);
   color = pow(max(color, 0.0), vec3(0.92));
   gl_FragColor = vec4(color, 1.0);
@@ -197,7 +293,7 @@ void main() {
 
 export interface OceanScene {
   resize: (width: number, height: number, scale: number) => void;
-  render: (time: number, dive: number, night: number) => void;
+  render: (time: number, dive: number, night: number, motion: number) => void;
   dispose: () => void;
 }
 
@@ -242,6 +338,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, compact: boolean): O
     const time = gl.getUniformLocation(program, 'u_time');
     const dive = gl.getUniformLocation(program, 'u_dive');
     const night = gl.getUniformLocation(program, 'u_night');
+    const motion = gl.getUniformLocation(program, 'u_motion');
     gl.uniform1f(gl.getUniformLocation(program, 'u_detail'), compact ? 0 : 1);
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
@@ -256,10 +353,11 @@ export function createOceanScene(canvas: HTMLCanvasElement, compact: boolean): O
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.uniform2f(resolution, canvas.width, canvas.height);
       },
-      render(seconds, progress, dark) {
+      render(seconds, progress, dark, animate) {
         gl.uniform1f(time, seconds);
         gl.uniform1f(dive, progress);
         gl.uniform1f(night, dark);
+        gl.uniform1f(motion, animate);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       },
       dispose,

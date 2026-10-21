@@ -68,7 +68,7 @@ export function OceanHero() {
       night += (targetNight - night) * (still ? 1 : Math.min(elapsed * 3, 1));
       const mustPaint = !still || Math.abs(lastPaint - progress) > 0.0001 || Math.abs(lastNight - night) > 0.001;
       if (mustPaint) {
-        scene.render(clock + 12, progress, night);
+        scene.render(clock + 12, progress, night, motion.matches ? 0 : 1);
         lastPaint = progress;
         lastNight = night;
         syncProgress(progress);
@@ -121,7 +121,7 @@ export function OceanHero() {
         lastPaint = progress;
         lastNight = night;
         syncProgress(progress);
-        scene.render(clock + 12, progress, night);
+        scene.render(clock + 12, progress, night, motion.matches ? 0 : 1);
         section.dataset.rendered = 'true';
         wake();
       } else {
