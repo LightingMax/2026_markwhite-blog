@@ -2,9 +2,11 @@ import { llms, loader } from 'fumadocs-core/source';
 import { docsRoute, docsContentRoute } from './shared';
 import { defineDocs } from 'fumadocs-mdx/macro';
 import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
+import { i18n } from './i18n';
 import { z } from 'zod';
 
 const articleSchema = pageSchema.extend({
+  navTitle: z.string().optional(),
   date: z.string().optional(),
   tags: z.array(z.string()).optional(),
   series: z.string().optional(),
@@ -23,6 +25,7 @@ const docs = defineDocs({
 
 export const source = loader({
   baseUrl: docsRoute,
+  i18n,
   source: docs.toFumadocsSource(),
   plugins: [],
 });

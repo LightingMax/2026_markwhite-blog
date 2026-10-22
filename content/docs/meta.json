@@ -2,9 +2,11 @@
   "title": "文章",
   "pages": [
     "index",
+    "---技术与研究---",
     "computer-vision",
-    "engineering",
-    "thoughts",
-    "projects"
-  ]
+    "---构建与随想---",
+    "projects",
+    "thoughts"
+  ],
+  "defaultOpen": false
 }

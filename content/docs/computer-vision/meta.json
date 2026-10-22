@@ -1,9 +1,7 @@
 {
   "title": "计算机视觉",
   "pages": [
-    "index",
     "cvat-video-annotation-zh",
-    "cvat-video-annotation-en",
     "camera-color",
     "paper-reading"
   ],

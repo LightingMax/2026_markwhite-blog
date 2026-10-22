@@ -1,8 +1,9 @@
 'use client';
 import { SearchDialog, SearchDialogClose, SearchDialogContent, SearchDialogHeader, SearchDialogIcon, SearchDialogInput, SearchDialogList, SearchDialogOverlay, type SharedProps } from 'fumadocs-ui/components/dialog/search';
+import { useI18n } from 'fumadocs-ui/contexts/i18n';
 import { useStaticSearch } from 'fumadocs-core/search/client';
 
 export default function DefaultSearchDialog(props: SharedProps) {
-  const search = useStaticSearch({});
+  const search = useStaticSearch({ locale: useI18n().locale });
   return <SearchDialog {...search} {...props}><SearchDialogOverlay /><SearchDialogContent><SearchDialogHeader><SearchDialogIcon /><SearchDialogInput /><SearchDialogClose /></SearchDialogHeader><SearchDialogList /></SearchDialogContent></SearchDialog>;
 }

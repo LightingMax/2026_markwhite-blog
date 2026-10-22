@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { OceanScene } from './scene';
 
-export function OceanHero() {
+export function OceanHero({ locale = 'zh' }: { locale?: 'zh' | 'en' }) {
+  const en = locale === 'en';
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [paused, setPaused] = useState(false);
@@ -164,25 +165,24 @@ export function OceanHero() {
   }, []);
 
   return (
-    <section className="ocean-cover" ref={sectionRef} data-paused={paused} aria-label="海面与水下封面">
+    <section className="ocean-cover" ref={sectionRef} data-paused={paused} aria-label={en ? 'Above and beneath the ocean' : '海面与水下封面'}>
       <div className="ocean-stage">
         <div className="ocean-fallback" aria-hidden="true" />
         <canvas className="ocean-canvas" ref={canvasRef} aria-hidden="true" />
         <div className="ocean-scrim" aria-hidden="true" />
         <div className="ocean-copy">
           <p className="ocean-kicker">MARK WHITE <span>/</span> NOTES ON SEEING &amp; BUILDING</p>
-          <h1>把复杂的事，<br /><em>写清楚。</em></h1>
-          <p className="ocean-lede">在表象之下，继续探索。<br />关于视觉、技术，和正在形成的想法。</p>
+          <h1>{en ? 'Complex things,' : '把复杂的事，'}<br /><em>{en ? 'clearly told.' : '写清楚。'}</em></h1>
+          <p className="ocean-lede">{en ? 'Keep looking beneath the surface.' : '在表象之下，继续探索。'}<br />{en ? 'On vision, technology, and ideas taking shape.' : '关于视觉、技术，和正在形成的想法。'}</p>
           <div className="ocean-links">
-            <Link href="/docs/" className="ocean-read">进入文章 <span aria-hidden="true">↗</span></Link>
-            <a href="#writing" className="ocean-skip">跳过封面 <span aria-hidden="true">↓</span></a>
+            <Link href={en ? "/en/docs/" : "/docs/"} className="ocean-read">{en ? "Explore the writing" : "阅读文章"} <span aria-hidden="true">↗</span></Link>
           </div>
         </div>
-        <div className="ocean-submerged" aria-hidden="true"><span>BENEATH THE SURFACE</span><p>好奇，向更深处。</p></div>
+        <div className="ocean-submerged" aria-hidden="true"><span>BENEATH THE SURFACE</span><p>{en ? 'Let curiosity take you deeper.' : '好奇，向更深处。'}</p></div>
         <div className="ocean-caption">
-          <a className="ocean-scroll" href="#writing"><span className="ocean-scroll-line" aria-hidden="true" /><span>向下滚动，潜入文字</span></a>
+          <a className="ocean-scroll" href="#writing"><span className="ocean-scroll-line" aria-hidden="true" /><span>{en ? 'Scroll into the writing' : '向下滚动，潜入文字'}</span></a>
           <button type="button" className="ocean-pause" aria-pressed={paused} onClick={() => setPaused(!paused)}>
-            <span aria-hidden="true">{paused ? '▷' : 'Ⅱ'}</span> {paused ? '继续海浪' : '暂停海浪'}
+            <span aria-hidden="true">{paused ? '▷' : 'Ⅱ'}</span> {paused ? (en ? 'Play waves' : '继续海浪') : (en ? 'Pause waves' : '暂停海浪')}
           </button>
         </div>
       </div>

@@ -10,13 +10,6 @@ const entries = [
     href: '/docs/computer-vision/cvat-video-annotation-zh/',
   },
   {
-    section: 'COMPUTER VISION / ANNOTATION',
-    title: 'Video Tracking and Action Phases with CVAT',
-    description: 'A practical guide to keyframes, track identities, Outside states, and phase tags.',
-    meta: 'English · 2026.10.21',
-    href: '/docs/computer-vision/cvat-video-annotation-en/',
-  },
-  {
     section: '计算机视觉 / 相机与色彩',
     title: '颜色与相机成像',
     description: '从光谱、传感器和 RAW 开始，一直走到 ISP、照片风格与计算机视觉。',

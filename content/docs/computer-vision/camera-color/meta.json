@@ -1,7 +1,6 @@
 {
   "title": "相机与色彩",
   "pages": [
-    "index",
     "01-photo-is-not-measurement",
     "02-spectrum-and-cie-color",
     "03-color-space-and-gamma",
@@ -12,5 +11,5 @@
     "08-isp-research-and-datasets",
     "09-python-experiments"
   ],
-  "defaultOpen": true
+  "defaultOpen": false
 }

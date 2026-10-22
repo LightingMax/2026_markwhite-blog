@@ -1,8 +1,7 @@
 {
   "title": "相机与色彩",
   "pages": [
-    "index",
     "iccv-2019-camera-color"
   ],
-  "defaultOpen": true
+  "defaultOpen": false
 }

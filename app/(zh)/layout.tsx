@@ -1,5 +1,6 @@
 import { Provider } from '@/components/provider';
-import './global.css';
+import '../global.css';
+import { translationLinks } from '@/lib/navigation';
 
 export const metadata = {
   metadataBase: new URL('https://markwhite.cn/blog/'),
@@ -11,7 +12,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
-        <Provider>{children}</Provider>
+        <Provider translations={translationLinks()}>{children}</Provider>
       </body>
     </html>
   );
