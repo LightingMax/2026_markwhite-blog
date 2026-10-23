@@ -2,6 +2,7 @@
   "title": "计算机视觉",
   "pages": [
     "cvat-video-annotation-zh",
+    "video-anomaly-detection-metrics",
     "camera-color",
     "paper-reading"
   ],
