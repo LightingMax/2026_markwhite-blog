@@ -1,0 +1,5 @@
+{
+  "title": "视频理解",
+  "pages": ["01-temporal-shift-module"],
+  "defaultOpen": false
+}

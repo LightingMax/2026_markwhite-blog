@@ -3,6 +3,7 @@
   "pages": [
     "cvat-video-annotation-zh",
     "video-anomaly-detection-metrics",
+    "video-understanding",
     "camera-color",
     "paper-reading"
   ],
