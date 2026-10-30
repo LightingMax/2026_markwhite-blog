@@ -1,0 +1,14 @@
+{
+  "model": "torchvision ResNet18 IMAGENET1K_V1",
+  "layer": "conv1 -> bn1 -> relu (before maxpool)",
+  "shape": [
+    8,
+    64,
+    112,
+    112
+  ],
+  "input": "8 simulated pan frames from NASA astronaut photograph",
+  "display": "grayscale, ReLU >= 0; shared per-channel maximum across eight frames, then sqrt display gamma to reveal weak responses",
+  "trained_tsm": false,
+  "verified_whole_plane_shift": true
+}
